@@ -18,8 +18,9 @@
       category: '',
       poolScore: 5,
       tourScore: 15,
+      pisteCount: 3,
       fencers: [],
-      pools: [], // [{ id, fencers: [...], matches: [...] }]
+      pools: [], // [{ id, piste, fencers: [...], matches: [...] }]
       tournament: null,
       status: 'preparing',
       createdAt: Date.now(),
@@ -65,16 +66,62 @@
   async function save() {
     await window.FMMStore.saveTournament(state);
     updateStatusBar();
+    updateViewerLink();
   }
 
   function updateStatusBar() {
     const sb = $('#statusBar');
     const liveTxt = window.FIREBASE_ENABLED ? '<span class="live">● LIVE同期中</span>' : '⚠ オフラインモード（Firebase未設定）';
-    sb.innerHTML = `${escapeHtml(state.name || '無題の大会')} | ${escapeHtml(state.date)} | 参加${state.fencers.length}名 | ${liveTxt}`;
+    const dash = computeDashboard();
+    const dashTxt = dash.total > 0
+      ? ` | 試合進捗 ${dash.completed}/${dash.total} (${dash.percent}%) | 残り推定 ${dash.estimatedRemainMin}分`
+      : '';
+    sb.innerHTML = `${escapeHtml(state.name || '無題の大会')} | ${escapeHtml(state.date)} | 参加${state.fencers.length}名${dashTxt} | ${liveTxt}`;
+  }
+
+  function computeDashboard() {
+    let total = 0, completed = 0;
+    (state.pools || []).forEach((p) => {
+      total += p.matches.length;
+      completed += p.matches.filter((m) => m.completed).length;
+    });
+    if (state.tournament) {
+      state.tournament.rounds.forEach((round) => {
+        round.forEach((m) => {
+          if (m.fencerA && m.fencerB) {
+            total += 1;
+            if (m.completed) completed += 1;
+          }
+        });
+      });
+    }
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    // 1試合平均 5分、ピスト数で並列処理
+    const piste = state.pisteCount || 1;
+    const remain = total - completed;
+    const estimatedRemainMin = Math.ceil((remain * 5) / piste);
+    return { total, completed, percent, estimatedRemainMin };
   }
 
   function updateViewerLink() {
     $('#viewerLink').href = `viewer.html?id=${encodeURIComponent(tournamentId)}`;
+    const viewerUrl = `${location.origin}${location.pathname.replace(/admin\.html$/, 'viewer.html')}?id=${encodeURIComponent(tournamentId)}`;
+    const urlInput = $('#viewerUrl');
+    if (urlInput) urlInput.value = viewerUrl;
+    renderQRCode(viewerUrl);
+  }
+
+  function renderQRCode(url) {
+    const container = $('#qrCodeContainer');
+    if (!container || typeof QRCode === 'undefined') return;
+    container.innerHTML = '';
+    QRCode.toCanvas(url, { width: 200, margin: 2 }, (err, canvas) => {
+      if (err) {
+        container.innerHTML = '<p class="hint">QRコード生成失敗</p>';
+        return;
+      }
+      container.appendChild(canvas);
+    });
   }
 
   // ---- ① 基本情報 ----
@@ -85,6 +132,7 @@
     $('#tCategory').value = state.category;
     $('#tPoolScore').value = state.poolScore;
     $('#tTourScore').value = state.tourScore;
+    $('#tPisteCount').value = state.pisteCount || 3;
 
     $('#btnSaveBasic').addEventListener('click', async () => {
       state.name = $('#tName').value.trim();
@@ -93,6 +141,7 @@
       state.category = $('#tCategory').value.trim();
       state.poolScore = Number($('#tPoolScore').value) || 5;
       state.tourScore = Number($('#tTourScore').value) || 15;
+      state.pisteCount = Number($('#tPisteCount').value) || 3;
       await save();
       alert('保存しました');
     });
@@ -101,6 +150,45 @@
       if (!confirm('この大会を完全に削除します。よろしいですか？')) return;
       await window.FMMStore.deleteTournament(tournamentId);
       location.href = 'index.html';
+    });
+
+    // QR / URL / バックアップ
+    $('#btnCopyUrl').addEventListener('click', async () => {
+      const url = $('#viewerUrl').value;
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('URLをコピーしました');
+      } catch (e) {
+        $('#viewerUrl').select();
+        document.execCommand('copy');
+        alert('URLをコピーしました');
+      }
+    });
+
+    $('#btnExportBackup').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      downloadBlob(blob, `${state.name || 'tournament'}-backup-${state.date}.json`);
+    });
+
+    $('#btnImport').addEventListener('click', () => {
+      $('#fileImport').click();
+    });
+
+    $('#fileImport').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      if (!confirm('現在の大会データを上書きします。よろしいですか？')) return;
+      const text = await file.text();
+      try {
+        const imported = JSON.parse(text);
+        // IDは現在のものを引き継ぐ
+        imported.id = state.id;
+        state = imported;
+        await save();
+        location.reload();
+      } catch (err) {
+        alert('JSONの読み込みに失敗しました：' + err.message);
+      }
     });
   }
 
@@ -188,12 +276,18 @@
         return a.seed - b.seed;
       });
       const distributed = distributeFencers(sorted, poolCount);
-      state.pools = distributed.map((poolFencers, i) => ({
-        id: `pool_${i + 1}`,
-        name: `プール${i + 1}`,
-        fencers: poolFencers,
-        matches: generatePoolMatches(poolFencers),
-      }));
+      const pisteCount = state.pisteCount || poolCount;
+      state.pools = distributed.map((poolFencers, i) => {
+        const piste = (i % pisteCount) + 1;
+        const matches = generatePoolMatches(poolFencers).map((m) => ({ ...m, piste }));
+        return {
+          id: `pool_${i + 1}`,
+          name: `プール${i + 1}`,
+          piste,
+          fencers: poolFencers,
+          matches,
+        };
+      });
       state.status = 'pool';
       await save();
       renderPools();
@@ -218,22 +312,36 @@
     container.innerHTML = state.pools.map((pool, pi) => {
       const stats = calculatePoolStats(pool.fencers, pool.matches);
       const ranked = sortByRanking(stats);
+      const pisteLabel = pool.piste ? `<span class="tag">ピスト${pool.piste}</span>` : '';
+      const doneCount = pool.matches.filter(m => m.completed).length;
       return `
         <div class="card">
-          <h2>${escapeHtml(pool.name)}（${pool.fencers.length}名）</h2>
+          <h2>${escapeHtml(pool.name)}（${pool.fencers.length}名）${pisteLabel} <small style="font-weight:normal;color:#6b7280;font-size:0.85rem;">${doneCount}/${pool.matches.length}試合完了</small></h2>
           <div class="grid-2col">
             <div>
               <h3 style="font-size:0.95rem;color:#6b7280">対戦カード</h3>
-              ${pool.matches.map((m, mi) => `
+              ${pool.matches.map((m, mi) => {
+                const isTie = m.completed && m.scoreA === m.scoreB && m.scoreA > 0;
+                const tieA = m.tieBreakWinner === 'A';
+                const tieB = m.tieBreakWinner === 'B';
+                return `
                 <div class="match-card ${m.completed ? 'completed' : ''}">
-                  <span class="name">${escapeHtml(m.fencerAName)}</span>
+                  <span class="name">${escapeHtml(m.fencerAName)}${tieA ? ' 🏆' : ''}</span>
                   <input type="number" class="score-input" min="0" max="${state.poolScore}" value="${m.scoreA}" data-pool="${pi}" data-match="${mi}" data-side="A">
                   <span class="vs">vs</span>
                   <input type="number" class="score-input" min="0" max="${state.poolScore}" value="${m.scoreB}" data-pool="${pi}" data-match="${mi}" data-side="B">
-                  <span class="name">${escapeHtml(m.fencerBName)}</span>
+                  <span class="name">${escapeHtml(m.fencerBName)}${tieB ? ' 🏆' : ''}</span>
                   <button class="small ${m.completed ? 'secondary' : ''}" data-confirm-pool="${pi}" data-confirm-match="${mi}">${m.completed ? '修正' : '確定'}</button>
+                  ${isTie ? `
+                    <div style="flex-basis:100%;margin-top:6px;padding-top:6px;border-top:1px dashed #d8dbe0;font-size:0.8rem">
+                      <span style="color:#d97706;margin-right:8px">⏱ 同点 → 延長戦勝者：</span>
+                      <button class="small ${tieA ? '' : 'secondary'}" data-tiebreak-pool="${pi}" data-tiebreak-match="${mi}" data-tiebreak-side="A">${escapeHtml(m.fencerAName)}</button>
+                      <button class="small ${tieB ? '' : 'secondary'}" data-tiebreak-pool="${pi}" data-tiebreak-match="${mi}" data-tiebreak-side="B">${escapeHtml(m.fencerBName)}</button>
+                      ${(tieA || tieB) ? `<button class="small secondary" data-tiebreak-pool="${pi}" data-tiebreak-match="${mi}" data-tiebreak-side="">クリア</button>` : ''}
+                    </div>
+                  ` : ''}
                 </div>
-              `).join('')}
+              `;}).join('')}
             </div>
             <div>
               <h3 style="font-size:0.95rem;color:#6b7280">プール順位</h3>
@@ -272,6 +380,20 @@
         const mi = Number(e.target.dataset.confirmMatch);
         const m = state.pools[pi].matches[mi];
         m.completed = !m.completed;
+        // 確定解除した場合は延長戦勝者もリセット
+        if (!m.completed) m.tieBreakWinner = null;
+        await save();
+        renderPools();
+        renderOverallRank();
+      });
+    });
+    container.querySelectorAll('[data-tiebreak-pool]').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        const pi = Number(e.target.dataset.tiebreakPool);
+        const mi = Number(e.target.dataset.tiebreakMatch);
+        const side = e.target.dataset.tiebreakSide;
+        const m = state.pools[pi].matches[mi];
+        m.tieBreakWinner = side || null;
         await save();
         renderPools();
         renderOverallRank();

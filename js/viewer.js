@@ -22,10 +22,149 @@
   function renderAll() {
     if (!state) return;
     updateStatusBar();
+    renderDashboard();
+    renderPisteView();
     renderLiveMatches();
+    renderPoolMatchView();
     renderOverallRank();
     renderTournamentView();
     renderFinalResult();
+  }
+
+  function computeDashboard() {
+    let total = 0, completed = 0;
+    (state.pools || []).forEach((p) => {
+      total += p.matches.length;
+      completed += p.matches.filter((m) => m.completed).length;
+    });
+    if (state.tournament) {
+      state.tournament.rounds.forEach((round) => {
+        round.forEach((m) => {
+          if (m.fencerA && m.fencerB) {
+            total += 1;
+            if (m.completed) completed += 1;
+          }
+        });
+      });
+    }
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const piste = state.pisteCount || 1;
+    const remain = total - completed;
+    const estimatedRemainMin = Math.ceil((remain * 5) / piste);
+    return { total, completed, percent, estimatedRemainMin, remain };
+  }
+
+  function renderDashboard() {
+    const d = computeDashboard();
+    const container = $('#dashboard');
+    if (d.total === 0) {
+      container.className = 'empty-state';
+      container.innerHTML = 'まだ試合が生成されていません';
+      return;
+    }
+    container.className = '';
+    const barWidth = d.percent;
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;text-align:center">
+        <div><div style="font-size:1.4rem;font-weight:bold">${d.completed}/${d.total}</div><div class="hint">完了試合</div></div>
+        <div><div style="font-size:1.4rem;font-weight:bold">${d.percent}%</div><div class="hint">進捗率</div></div>
+        <div><div style="font-size:1.4rem;font-weight:bold">${d.remain}</div><div class="hint">残り試合</div></div>
+        <div><div style="font-size:1.4rem;font-weight:bold">約${d.estimatedRemainMin}分</div><div class="hint">推定残り時間</div></div>
+      </div>
+      <div style="background:#e5e7eb;border-radius:4px;height:10px;margin-top:12px;overflow:hidden">
+        <div style="background:var(--color-primary);height:100%;width:${barWidth}%;transition:width 0.5s"></div>
+      </div>
+    `;
+  }
+
+  function renderPisteView() {
+    const container = $('#pisteView');
+    if (!state.pools || state.pools.length === 0) {
+      container.className = 'empty-state';
+      container.innerHTML = 'プール戦未開始';
+      return;
+    }
+    // ピスト数を state またはプールから推定
+    let pisteCount = state.pisteCount || 0;
+    if (pisteCount === 0) {
+      state.pools.forEach((p) => {
+        if (p.piste && p.piste > pisteCount) pisteCount = p.piste;
+      });
+      if (pisteCount === 0) pisteCount = state.pools.length;
+    }
+    container.className = '';
+    const pistes = {};
+    for (let i = 1; i <= pisteCount; i++) pistes[i] = [];
+    state.pools.forEach((p) => {
+      const piste = p.piste || 1;
+      const ongoing = p.matches.find((m) => !m.completed);
+      if (ongoing) {
+        if (!pistes[piste]) pistes[piste] = [];
+        pistes[piste].push({ poolName: p.name, match: ongoing });
+      }
+    });
+    container.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+        ${Object.keys(pistes).map((p) => {
+          const items = pistes[p];
+          if (items.length === 0) {
+            return `<div style="border:1px solid var(--color-border);border-radius:6px;padding:10px;background:#fafafa">
+              <div style="font-weight:bold;color:var(--color-secondary)">ピスト${p}</div>
+              <div class="hint">待機中</div>
+            </div>`;
+          }
+          return items.map((it) => `
+            <div style="border:2px solid var(--color-primary);border-radius:6px;padding:10px;background:#fff5f5">
+              <div style="font-weight:bold;color:var(--color-primary)">ピスト${p} / ${escapeHtml(it.poolName)}</div>
+              <div style="margin-top:6px">${escapeHtml(it.match.fencerAName)} <strong>${it.match.scoreA}</strong></div>
+              <div>vs</div>
+              <div>${escapeHtml(it.match.fencerBName)} <strong>${it.match.scoreB}</strong></div>
+            </div>
+          `).join('');
+        }).join('')}
+      </div>
+    `;
+  }
+
+  function renderPoolMatchView() {
+    const container = $('#poolMatchView');
+    if (!state.pools || state.pools.length === 0) {
+      container.className = 'empty-state';
+      container.innerHTML = 'プール戦未開始';
+      return;
+    }
+    container.className = '';
+    container.innerHTML = state.pools.map((p) => {
+      const done = p.matches.filter(m => m.completed).length;
+      return `
+        <div style="margin-bottom:18px">
+          <h3 style="font-size:1rem;margin:0 0 6px">${escapeHtml(p.name)} <span class="tag">ピスト${p.piste || '-'}</span> <small style="font-weight:normal;color:#6b7280">${done}/${p.matches.length}試合</small></h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px">
+            ${p.matches.map((m, mi) => {
+              const status = m.completed ? '✅' : (m.scoreA + m.scoreB > 0 ? '🟢' : '⚪');
+              const bg = m.completed ? '#f0fdf4' : (m.scoreA + m.scoreB > 0 ? '#fff5f5' : '#fafafa');
+              const aWinByScore = m.completed && m.scoreA > m.scoreB;
+              const bWinByScore = m.completed && m.scoreB > m.scoreA;
+              const aWinByTie = m.completed && m.scoreA === m.scoreB && m.tieBreakWinner === 'A';
+              const bWinByTie = m.completed && m.scoreA === m.scoreB && m.tieBreakWinner === 'B';
+              const aWin = (aWinByScore || aWinByTie) ? 'font-weight:bold;color:var(--color-primary)' : '';
+              const bWin = (bWinByScore || bWinByTie) ? 'font-weight:bold;color:var(--color-primary)' : '';
+              const tieMark = (aWinByTie || bWinByTie) ? ' <span title="延長戦勝者" style="color:#d97706">⏱V</span>' : '';
+              return `
+                <div style="padding:6px 8px;border:1px solid var(--color-border);border-radius:4px;background:${bg};font-size:0.85rem">
+                  <span style="color:#6b7280">${status} ${mi+1}.</span>
+                  <span style="${aWin}">${escapeHtml(m.fencerAName)}${aWinByTie ? tieMark : ''}</span>
+                  <strong>${m.scoreA}</strong>
+                  <span style="color:#6b7280">-</span>
+                  <strong>${m.scoreB}</strong>
+                  <span style="${bWin}">${escapeHtml(m.fencerBName)}${bWinByTie ? tieMark : ''}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   function updateStatusBar() {
