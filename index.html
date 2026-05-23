@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>フェンシング試合管理システム</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>⚔️ フェンシング試合管理</h1>
+    <nav>
+      <a href="index.html">大会一覧</a>
+      <a href="admin.html">新規大会作成</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="card">
+      <h2>大会を選んでください</h2>
+      <p class="hint">運営は「管理」を、観客・選手は「観戦」を押してください。</p>
+      <div id="tournamentList" class="empty-state">読み込み中…</div>
+    </div>
+
+    <div class="card">
+      <h2>新しい大会を作る</h2>
+      <a href="admin.html"><button>＋ 新規大会作成へ</button></a>
+    </div>
+
+    <div class="card">
+      <h2>このシステムについて</h2>
+      <p>
+        FIE公式準拠（V/M/Ind/TS）でプール戦＆トーナメント戦を一括管理。<br>
+        URLを共有すれば、観客・選手のスマホからリアルタイムで進行状況が確認できます。
+      </p>
+      <p class="hint">
+        Firebase未設定時は運営PC内のみで動作（オフライン可）。詳細はREADMEを参照。
+      </p>
+    </div>
+  </main>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script>
+    (async () => {
+      const list = await window.FMMStore.listTournaments();
+      const container = document.getElementById('tournamentList');
+      if (list.length === 0) {
+        container.innerHTML = '<p>まだ大会がありません。「新規大会作成」から始めてください。</p>';
+        return;
+      }
+      container.classList.remove('empty-state');
+      container.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>大会名</th><th>日付</th><th>剣種</th><th>状態</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${list.map(t => `
+              <tr>
+                <td>${escapeHtml(t.name || '無題')}</td>
+                <td>${escapeHtml(t.date || '')}</td>
+                <td><span class="tag weapon-${t.weapon || 'fleuret'}">${weaponLabel(t.weapon)}</span></td>
+                <td>${statusLabel(t.status)}</td>
+                <td>
+                  <a href="admin.html?id=${encodeURIComponent(t.id)}"><button class="small">管理</button></a>
+                  <a href="viewer.html?id=${encodeURIComponent(t.id)}"><button class="small secondary">観戦</button></a>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    })();
+    function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+    function weaponLabel(w) { return ({fleuret:'フルーレ', epee:'エペ', sabre:'サーブル'}[w] || 'フルーレ'); }
+    function statusLabel(s) { return ({pool:'プール戦中', tournament:'トーナメント中', done:'終了'}[s] || '準備中'); }
+  </script>
+</body>
+</html>

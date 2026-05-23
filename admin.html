@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>運営画面 - フェンシング試合管理</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>⚔️ フェンシング試合管理 <span style="font-size:0.85rem;opacity:0.7;">運営画面</span></h1>
+    <nav>
+      <a href="index.html">大会一覧</a>
+      <a id="viewerLink" href="#">観戦ページを開く</a>
+    </nav>
+  </header>
+
+  <main>
+    <div id="statusBar" class="status-bar">大会を読み込み中…</div>
+
+    <div class="tab-bar">
+      <button data-tab="basic" class="active">① 大会情報</button>
+      <button data-tab="fencers">② 参加者</button>
+      <button data-tab="pool">③ プール戦</button>
+      <button data-tab="tournament">④ トーナメント</button>
+      <button data-tab="result">⑤ 結果</button>
+    </div>
+
+    <!-- ① 大会情報 -->
+    <section id="tab-basic" class="tab-panel">
+      <div class="card">
+        <h2>大会の基本情報</h2>
+        <div class="grid-2col">
+          <div>
+            <label>大会名<br><input type="text" id="tName" style="width:100%" placeholder="例：第10回 広島オープン"></label>
+          </div>
+          <div>
+            <label>開催日<br><input type="date" id="tDate" style="width:100%"></label>
+          </div>
+          <div>
+            <label>剣種<br>
+              <select id="tWeapon" style="width:100%">
+                <option value="fleuret">フルーレ</option>
+                <option value="epee">エペ</option>
+                <option value="sabre">サーブル</option>
+              </select>
+            </label>
+          </div>
+          <div>
+            <label>カテゴリー<br><input type="text" id="tCategory" style="width:100%" placeholder="例：男子個人 / 中学生女子"></label>
+          </div>
+          <div>
+            <label>プール戦の点数<br><input type="number" id="tPoolScore" value="5" min="1" max="15" style="width:100%"></label>
+            <p class="hint">通常5点先取</p>
+          </div>
+          <div>
+            <label>トーナメント点数<br><input type="number" id="tTourScore" value="15" min="1" max="15" style="width:100%"></label>
+            <p class="hint">通常15点先取（中学生は10点等）</p>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <button id="btnSaveBasic">保存</button>
+          <button id="btnDelete" class="secondary" style="float:right">大会を削除</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ② 参加者 -->
+    <section id="tab-fencers" class="tab-panel" style="display:none">
+      <div class="card">
+        <h2>参加者の登録</h2>
+        <p class="hint">シード値は小さいほど強い（1がトップシード）。空欄なら登録順で扱われます。</p>
+        <div class="toolbar">
+          <input type="text" id="fName" placeholder="選手名">
+          <input type="text" id="fClub" placeholder="所属（任意）">
+          <input type="number" id="fSeed" placeholder="シード" style="width:80px" min="1">
+          <button id="btnAddFencer">追加</button>
+        </div>
+        <p class="hint">まとめて貼り付け：1行1人「名前,所属,シード」形式のCSVを下に貼ってインポート</p>
+        <textarea id="fBulk" rows="4" style="width:100%;font-family:monospace" placeholder="例：&#10;山田太郎,広島フェンシングクラブ,1&#10;佐藤花子,広島大学,2"></textarea>
+        <div style="margin-top:6px"><button id="btnBulkImport" class="secondary small">CSVインポート</button></div>
+        <table>
+          <thead>
+            <tr><th>シード</th><th>名前</th><th>所属</th><th></th></tr>
+          </thead>
+          <tbody id="fencerTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ③ プール戦 -->
+    <section id="tab-pool" class="tab-panel" style="display:none">
+      <div class="card">
+        <h2>プール戦の振り分け</h2>
+        <div class="toolbar">
+          <label>プール数：<input type="number" id="poolCount" min="1" max="10" style="width:60px"></label>
+          <button id="btnGeneratePool">プールを自動生成</button>
+          <button id="btnResetPool" class="secondary">リセット</button>
+        </div>
+        <p class="hint">シード順を均等に分配します（蛇行配分）。一度生成すると対戦カードが作られます。</p>
+      </div>
+      <div id="poolsContainer"></div>
+      <div class="card">
+        <h2>プール戦 全体順位</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>順位</th><th>名前</th><th>所属</th>
+              <th class="num">V</th><th class="num">M</th>
+              <th class="num">V/M</th><th class="num">TS</th>
+              <th class="num">TR</th><th class="num">Ind</th>
+            </tr>
+          </thead>
+          <tbody id="overallRankTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ④ トーナメント -->
+    <section id="tab-tournament" class="tab-panel" style="display:none">
+      <div class="card">
+        <h2>トーナメント生成</h2>
+        <div class="toolbar">
+          <label>進出人数：<input type="number" id="advanceCount" min="2" style="width:80px"></label>
+          <button id="btnGenerateTournament">トーナメント表生成</button>
+          <button id="btnResetTournament" class="secondary">リセット</button>
+        </div>
+        <p class="hint">プール戦の全体順位上位N名が進出します。bracket sizeに足りない分は不戦勝（bye）扱い。</p>
+      </div>
+      <div class="card">
+        <h2>トーナメント表</h2>
+        <div id="tournamentContainer" class="tournament-bracket empty-state">まだ生成されていません</div>
+      </div>
+    </section>
+
+    <!-- ⑤ 結果 -->
+    <section id="tab-result" class="tab-panel" style="display:none">
+      <div class="card">
+        <h2>最終結果</h2>
+        <div id="finalResult" class="empty-state">トーナメント未完了</div>
+        <div style="margin-top:16px">
+          <button id="btnExportJson" class="secondary small">JSONエクスポート</button>
+          <button id="btnExportCsv" class="secondary small">CSVエクスポート</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ranking.js"></script>
+  <script src="js/pool.js"></script>
+  <script src="js/tournament.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

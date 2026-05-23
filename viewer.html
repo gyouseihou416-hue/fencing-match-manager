@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>観戦ページ - フェンシング試合管理</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <h1>⚔️ ライブ観戦</h1>
+    <nav>
+      <a href="index.html">大会一覧</a>
+    </nav>
+  </header>
+
+  <main>
+    <div id="statusBar" class="status-bar">読み込み中…</div>
+
+    <div class="card">
+      <h2>📌 現在進行中の試合</h2>
+      <div id="liveMatches" class="empty-state">準備中</div>
+    </div>
+
+    <div class="card">
+      <h2>🥇 暫定順位（プール戦）</h2>
+      <div id="overallRank" class="empty-state">プール戦未開始</div>
+    </div>
+
+    <div class="card">
+      <h2>🏆 トーナメント表</h2>
+      <div id="tournamentView" class="tournament-bracket empty-state">トーナメント未開始</div>
+    </div>
+
+    <div class="card">
+      <h2>🎯 最終結果</h2>
+      <div id="finalResult" class="empty-state">未確定</div>
+    </div>
+
+    <div class="card">
+      <h2>🔍 自分の次の試合を探す</h2>
+      <div class="toolbar">
+        <input type="text" id="searchName" placeholder="あなたの名前（部分一致）">
+        <button id="btnSearch">検索</button>
+      </div>
+      <div id="searchResult"></div>
+    </div>
+  </main>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ranking.js"></script>
+  <script src="js/viewer.js"></script>
+</body>
+</html>
