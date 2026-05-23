@@ -1,6 +1,4 @@
-// store.js
-// データ保存層：Firebase が設定されていれば Firestore、なければ localStorage を使用
-// admin/viewer 両方から同じ API で呼べる
+// store.js - データ保存層
 
 const STORAGE_PREFIX = 'fmm_tournament_';
 const LIST_KEY = 'fmm_tournament_list';
@@ -30,20 +28,50 @@ function genId() {
   return 't_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 }
 
+// Firestore は配列の中に配列を入れられないので、tournament.rounds の各要素を
+// {matches:[...]}でラップしてから保存し、読み込み時に元の配列に戻す
+function toFirestoreSafe(data) {
+  if (!data) return data;
+  const clone = JSON.parse(JSON.stringify(data));
+  if (clone.tournament && Array.isArray(clone.tournament.rounds)) {
+    clone.tournament.rounds = clone.tournament.rounds.map((r) => {
+      if (Array.isArray(r)) return { matches: r };
+      return r;
+    });
+  }
+  return clone;
+}
+
+function fromFirestore(data) {
+  if (!data) return data;
+  if (data.tournament && Array.isArray(data.tournament.rounds)) {
+    data.tournament.rounds = data.tournament.rounds.map((r) => {
+      if (r && Array.isArray(r.matches)) return r.matches;
+      if (Array.isArray(r)) return r;
+      return r;
+    });
+  }
+  return data;
+}
+
 async function saveTournament(tournament) {
   if (!tournament.id) tournament.id = genId();
   tournament.updatedAt = Date.now();
-  // localStorage は常に保存（オフラインフォールバック）
   localStorage.setItem(STORAGE_PREFIX + tournament.id, JSON.stringify(tournament));
   const list = JSON.parse(localStorage.getItem(LIST_KEY) || '[]');
   if (!list.find((t) => t.id === tournament.id)) {
     list.push({ id: tournament.id, name: tournament.name, date: tournament.date });
     localStorage.setItem(LIST_KEY, JSON.stringify(list));
   }
-  // Firebase
   const fb = await initFirebaseIfNeeded();
   if (fb) {
-    await fb.setDoc(fb.doc(fb.db, 'tournaments', tournament.id), tournament);
+    try {
+      const safe = toFirestoreSafe(tournament);
+      await fb.setDoc(fb.doc(fb.db, 'tournaments', tournament.id), safe);
+    } catch (e) {
+      console.error('Firebase保存失敗:', e);
+      throw e;
+    }
   }
   return tournament;
 }
@@ -54,7 +82,7 @@ async function loadTournament(id) {
     try {
       const snap = await fb.getDoc(fb.doc(fb.db, 'tournaments', id));
       if (snap.exists()) {
-        const data = snap.data();
+        const data = fromFirestore(snap.data());
         localStorage.setItem(STORAGE_PREFIX + id, JSON.stringify(data));
         return data;
       }
@@ -102,18 +130,13 @@ async function deleteTournament(id) {
   }
 }
 
-/**
- * リアルタイム監視（viewer用）。callback には tournament オブジェクトが渡される
- * @returns {Function} 解除関数
- */
 async function subscribeTournament(id, callback) {
   const fb = await initFirebaseIfNeeded();
   if (fb) {
     return fb.onSnapshot(fb.doc(fb.db, 'tournaments', id), (snap) => {
-      if (snap.exists()) callback(snap.data());
+      if (snap.exists()) callback(fromFirestore(snap.data()));
     });
   }
-  // Firebase未設定時：localStorage変更を3秒ごとにポーリング
   let last = null;
   const timer = setInterval(async () => {
     const data = await loadTournament(id);
@@ -122,7 +145,6 @@ async function subscribeTournament(id, callback) {
       callback(data);
     }
   }, 3000);
-  // 初回呼び出し
   loadTournament(id).then((d) => d && callback(d));
   return () => clearInterval(timer);
 }
