@@ -18,8 +18,24 @@
     <div id="statusBar" class="status-bar">読み込み中…</div>
 
     <div class="card">
-      <h2>📌 現在進行中の試合</h2>
+      <h2>📊 進行状況</h2>
+      <div id="dashboard" class="empty-state">準備中</div>
+    </div>
+
+    <div class="card">
+      <h2>🟢 ピスト別 現在の試合</h2>
+      <div id="pisteView" class="empty-state">準備中</div>
+    </div>
+
+    <div class="card">
+      <h2>📌 進行中の試合（全体）</h2>
       <div id="liveMatches" class="empty-state">準備中</div>
+    </div>
+
+    <div class="card">
+      <h2>📋 プール戦の全試合状況</h2>
+      <p class="hint">各プールの全試合がリアルタイムで更新されます</p>
+      <div id="poolMatchView" class="empty-state">プール戦未開始</div>
     </div>
 
     <div class="card">

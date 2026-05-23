@@ -57,10 +57,36 @@
             <label>トーナメント点数<br><input type="number" id="tTourScore" value="15" min="1" max="15" style="width:100%"></label>
             <p class="hint">通常15点先取（中学生は10点等）</p>
           </div>
+          <div>
+            <label>ピスト数<br><input type="number" id="tPisteCount" value="3" min="1" max="20" style="width:100%"></label>
+            <p class="hint">会場で同時に試合できるピストの本数</p>
+          </div>
         </div>
         <div style="margin-top:16px">
           <button id="btnSaveBasic">保存</button>
           <button id="btnDelete" class="secondary" style="float:right">大会を削除</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📱 観戦ページのQRコード</h2>
+        <p class="hint">会場で印刷して掲示すれば、観客がスマホで簡単にアクセスできます</p>
+        <div id="qrCodeContainer" style="text-align:center;margin:12px 0"></div>
+        <div style="text-align:center">
+          <input type="text" id="viewerUrl" readonly style="width:80%;margin-right:8px">
+          <button id="btnCopyUrl" class="secondary small">URLコピー</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>💾 大会データの管理</h2>
+        <p class="hint">JSONファイルでバックアップ・復元ができます</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button id="btnExportBackup" class="secondary small">バックアップ書き出し</button>
+          <label class="button-like">
+            <input type="file" id="fileImport" accept=".json" style="display:none">
+            <button id="btnImport" class="secondary small">バックアップから復元</button>
+          </label>
         </div>
       </div>
     </section>
@@ -146,6 +172,7 @@
     </section>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/store.js"></script>
   <script src="js/ranking.js"></script>
