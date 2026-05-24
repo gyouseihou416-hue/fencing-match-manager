@@ -162,3 +162,156 @@ tr.rank-3 td:first-child { color: #cd7f32; font-weight: bold; }
 .tab-bar button.active { color: var(--color-primary); border-bottom-color: var(--color-primary); background: none; }
 
 .hint { color: var(--color-muted); font-size: 0.85rem; margin-top: 4px; }
+
+/* フッター */
+footer.site-footer {
+  margin-top: 40px;
+  padding: 20px;
+  text-align: center;
+  background: var(--color-secondary);
+  color: white;
+  font-size: 0.8rem;
+}
+footer.site-footer p { margin: 4px 0; }
+footer.site-footer .hint { color: rgba(255,255,255,0.7); }
+
+/* SVG トーナメント ブラケット */
+.svg-bracket {
+  overflow-x: auto;
+  padding: 12px 0;
+  background: #fafafa;
+  border-radius: 8px;
+}
+.svg-bracket svg {
+  display: block;
+  min-width: 100%;
+}
+.svg-bracket .bracket-line {
+  stroke: var(--color-border);
+  stroke-width: 2;
+  fill: none;
+}
+.svg-bracket .bracket-line.won {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+}
+.svg-bracket .bracket-line.pending {
+  stroke: var(--color-border);
+  stroke-dasharray: 4 4;
+}
+.svg-bracket .bracket-box {
+  fill: white;
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+.svg-bracket .bracket-box.completed {
+  fill: #f0fdf4;
+}
+.svg-bracket .bracket-name {
+  font-size: 12px;
+  fill: var(--color-text);
+  font-family: inherit;
+}
+.svg-bracket .bracket-name.winner {
+  font-weight: bold;
+  fill: var(--color-primary);
+}
+.svg-bracket .bracket-name.bye {
+  fill: var(--color-muted);
+  font-style: italic;
+}
+.svg-bracket .bracket-score {
+  font-size: 12px;
+  font-weight: bold;
+  fill: var(--color-text);
+}
+.svg-bracket .round-label {
+  font-size: 13px;
+  font-weight: bold;
+  fill: var(--color-muted);
+}
+
+/* 走順入力（チーム編成タブ） */
+.team-member-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.team-member-order-badge {
+  display: inline-block;
+  min-width: 56px;
+  padding: 4px 8px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-align: center;
+}
+.team-member-order {
+  width: 60px;
+  padding: 4px;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
+}
+
+/* プール対戦表マトリクス */
+.pool-matrix-wrap { margin-bottom: 24px; }
+.pool-matrix-title { margin: 0 0 8px; font-size: 1rem; }
+.pool-matrix-scroll { overflow-x: auto; }
+.pool-matrix {
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  min-width: 100%;
+}
+.pool-matrix th, .pool-matrix td {
+  border: 1px solid #d1d5db;
+  padding: 6px 8px;
+  text-align: center;
+  vertical-align: middle;
+  min-width: 36px;
+}
+.pool-matrix th { background: #f9fafb; font-weight: bold; }
+.pool-matrix th.pool-mx-col { background: #f3f4f6; }
+.pool-matrix td.mx-win { background: #fef2f2; }
+.pool-matrix td.mx-lose { background: #f9fafb; color: #111; }
+.pool-matrix .mx-sub { font-size: 0.7rem; color: #6b7280; margin-left: 3px; }
+.pool-matrix tbody tr:hover { background: #fffbeb; }
+
+/* 団体戦 */
+.team-card {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  background: white;
+}
+.team-card h3 { margin: 0 0 8px; font-size: 1rem; color: var(--color-secondary); }
+.team-members { display: grid; grid-template-columns: repeat(auto-fill,minmax(180px,1fr)); gap: 6px; }
+.team-bout-table { font-size: 0.9rem; }
+.team-bout-table td.cumulative { background: #f0f9ff; font-weight: bold; text-align: right; }
+.team-score-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, #1f2a44, #2c3a5c);
+  color: white;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.team-score-display .name { font-size: 1.3rem; font-weight: bold; }
+.team-score-display .score { font-size: 2.2rem; font-weight: bold; }
+.team-score-display .vs { font-size: 1.1rem; opacity: 0.7; }
+
+button.warning {
+  background: var(--color-warning);
+  color: white;
+}
+button.tie-break-btn {
+  background: var(--color-warning);
+  font-size: 0.8rem;
+  padding: 4px 8px;
+}
