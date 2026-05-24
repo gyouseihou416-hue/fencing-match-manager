@@ -37,6 +37,12 @@
     </div>
 
     <div class="card">
+      <h2>📊 プール対戦表（マトリクス）</h2>
+      <p class="hint">縦＝自分／横＝相手。勝ち＝<span style="color:#b91c1c;font-weight:bold">V</span>（得点）、負け＝黒数字（取られ点）</p>
+      <div id="poolMatrixView" class="empty-state">プール戦未開始</div>
+    </div>
+
+    <div class="card">
       <h2>📋 プール戦の全試合状況</h2>
       <p class="hint">各プールの全試合がリアルタイムで更新されます</p>
       <div id="poolMatchView" class="empty-state">プール戦未開始</div>
@@ -81,6 +87,7 @@
   <script src="js/store.js"></script>
   <script src="js/ranking.js"></script>
   <script src="js/team.js"></script>
+  <script src="js/tournament.js"></script>
   <script src="js/viewer.js"></script>
 </body>
 </html>
