@@ -21,6 +21,10 @@
       return;
     }
     state = data;
+    // bye自動進出を観戦画面でも反映（メモリ上のみで再描画用）
+    if (state.tournament && typeof repairBracketCascade === 'function') {
+      repairBracketCascade(state.tournament);
+    }
     renderAll();
     updateLastUpdated();
   }
@@ -56,6 +60,7 @@
     renderDashboard();
     renderPisteView();
     renderLiveMatches();
+    renderPoolMatrixView();
     renderPoolMatchView();
     renderOverallRank();
     renderTeamView();
@@ -157,6 +162,181 @@
             </div>
           `).join('');
         }).join('')}
+      </div>
+    `;
+  }
+
+  /**
+   * プール対戦表マトリクス（N×N）
+   * - 個人戦：行/列は選手、セルは1試合の結果
+   * - 団体戦：行/列はチーム、セルはチーム間試合の結果（5本勝負の勝数 or 累計得点）
+   */
+  function renderPoolMatrixView() {
+    const container = $('#poolMatrixView');
+    if (!container) return;
+    const isTeam = state.type && state.type.startsWith('team_');
+    const pools = isTeam ? (state.teamPools || []) : (state.pools || []);
+    if (pools.length === 0) {
+      container.className = 'empty-state';
+      container.innerHTML = isTeam ? '団体プール戦未開始' : 'プール戦未開始';
+      return;
+    }
+    container.className = '';
+    container.innerHTML = pools.map((p) => isTeam ? renderTeamPoolMatrix(p) : renderIndividualPoolMatrix(p)).join('');
+  }
+
+  function renderIndividualPoolMatrix(pool) {
+    const fencers = (pool.fencerIds || []).map(id => (state.fencers || []).find(f => f.id === id)).filter(Boolean);
+    const N = fencers.length;
+    if (N === 0) return '';
+    // ID→indexのマップ
+    const idxOf = {};
+    fencers.forEach((f, i) => { idxOf[f.id] = i; });
+    // 各選手の集計
+    const stats = fencers.map(f => ({ V: 0, M: 0, TS: 0, TR: 0 }));
+    (pool.matches || []).forEach((m) => {
+      if (!m.completed) return;
+      const ai = idxOf[m.fencerA];
+      const bi = idxOf[m.fencerB];
+      if (ai == null || bi == null) return;
+      stats[ai].M += 1; stats[bi].M += 1;
+      stats[ai].TS += m.scoreA; stats[ai].TR += m.scoreB;
+      stats[bi].TS += m.scoreB; stats[bi].TR += m.scoreA;
+      const aWin = (m.scoreA > m.scoreB) || (m.scoreA === m.scoreB && m.tieBreakWinner === 'A');
+      const bWin = (m.scoreB > m.scoreA) || (m.scoreA === m.scoreB && m.tieBreakWinner === 'B');
+      if (aWin) stats[ai].V += 1;
+      if (bWin) stats[bi].V += 1;
+    });
+    // セル取得関数
+    function getCell(rowI, colI) {
+      if (rowI === colI) return { gray: true };
+      const me = fencers[rowI].id;
+      const op = fencers[colI].id;
+      const m = (pool.matches || []).find(x =>
+        (x.fencerA === me && x.fencerB === op) || (x.fencerA === op && x.fencerB === me)
+      );
+      if (!m || !m.completed) return { empty: true };
+      const meIsA = m.fencerA === me;
+      const myScore = meIsA ? m.scoreA : m.scoreB;
+      const opScore = meIsA ? m.scoreB : m.scoreA;
+      let won;
+      if (myScore > opScore) won = true;
+      else if (opScore > myScore) won = false;
+      else won = m.tieBreakWinner === (meIsA ? 'A' : 'B');
+      return { myScore, opScore, won, isTie: myScore === opScore };
+    }
+    // テーブル本体
+    const headers = '<th></th><th style="background:#f3f4f6">選手</th>' +
+      fencers.map((_, i) => `<th class="pool-mx-col">${i + 1}</th>`).join('') +
+      '<th>V</th><th>M</th><th>TS</th><th>TR</th><th>Ind</th>';
+    const rows = fencers.map((f, ri) => {
+      const cells = fencers.map((_, ci) => {
+        const c = getCell(ri, ci);
+        if (c.gray) return '<td style="background:#374151"></td>';
+        if (c.empty) return '<td></td>';
+        if (c.won) {
+          return `<td class="mx-win"><strong style="color:#b91c1c">V</strong>${c.isTie ? '<sup>⏱</sup>' : ''}<span class="mx-sub">${c.myScore}</span></td>`;
+        }
+        return `<td class="mx-lose"><span style="color:#111">${c.myScore}</span></td>`;
+      }).join('');
+      const s = stats[ri];
+      const ind = s.TS - s.TR;
+      return `
+        <tr>
+          <td style="background:#f3f4f6;font-weight:bold">${ri + 1}</td>
+          <td style="text-align:left;white-space:nowrap">${escapeHtml(f.name)}</td>
+          ${cells}
+          <td><strong>${s.V}</strong></td><td>${s.M}</td><td>${s.TS}</td><td>${s.TR}</td>
+          <td style="color:${ind >= 0 ? '#16a34a' : '#dc2626'}">${ind >= 0 ? '+' : ''}${ind}</td>
+        </tr>
+      `;
+    }).join('');
+    const done = (pool.matches || []).filter(m => m.completed).length;
+    const total = (pool.matches || []).length;
+    return `
+      <div class="pool-matrix-wrap">
+        <h3 class="pool-matrix-title">${escapeHtml(pool.name)} <span class="tag">ピスト${pool.piste || '-'}</span> <small style="font-weight:normal;color:#6b7280">${done}/${total}試合</small></h3>
+        <div class="pool-matrix-scroll">
+          <table class="pool-matrix">
+            <thead><tr>${headers}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderTeamPoolMatrix(teamPool) {
+    const teams = (teamPool.teamIds || []).map(id => (state.teams || []).find(t => t.id === id)).filter(Boolean);
+    const N = teams.length;
+    if (N === 0) return '';
+    const idxOf = {};
+    teams.forEach((t, i) => { idxOf[t.id] = i; });
+    const stats = teams.map(() => ({ V: 0, M: 0, TS: 0, TR: 0 }));
+    (teamPool.matches || []).forEach((m) => {
+      const tm = (state.teamMatches || []).find(x => x.id === m.teamMatchId);
+      if (!tm || !tm.completed) return;
+      const ai = idxOf[m.teamAId];
+      const bi = idxOf[m.teamBId];
+      if (ai == null || bi == null) return;
+      stats[ai].M += 1; stats[bi].M += 1;
+      let totalA = 0, totalB = 0;
+      (tm.bouts || []).forEach(b => { totalA += b.scoreA; totalB += b.scoreB; });
+      stats[ai].TS += totalA; stats[ai].TR += totalB;
+      stats[bi].TS += totalB; stats[bi].TR += totalA;
+      if (tm.winner === 'A') stats[ai].V += 1;
+      else if (tm.winner === 'B') stats[bi].V += 1;
+    });
+    function getTeamCell(rowI, colI) {
+      if (rowI === colI) return { gray: true };
+      const me = teams[rowI].id;
+      const op = teams[colI].id;
+      const meta = (teamPool.matches || []).find(x =>
+        (x.teamAId === me && x.teamBId === op) || (x.teamAId === op && x.teamBId === me)
+      );
+      if (!meta) return { empty: true };
+      const tm = (state.teamMatches || []).find(x => x.id === meta.teamMatchId);
+      if (!tm || !tm.completed) return { empty: true };
+      const meIsA = meta.teamAId === me;
+      const myScore = meIsA ? tm.finalScoreA : tm.finalScoreB;
+      const opScore = meIsA ? tm.finalScoreB : tm.finalScoreA;
+      const won = tm.winner === (meIsA ? 'A' : 'B');
+      return { myScore, opScore, won };
+    }
+    const headers = '<th></th><th style="background:#f3f4f6">チーム</th>' +
+      teams.map((_, i) => `<th class="pool-mx-col">${i + 1}</th>`).join('') +
+      '<th>V</th><th>M</th><th>TS</th><th>TR</th><th>Ind</th>';
+    const rows = teams.map((t, ri) => {
+      const cells = teams.map((_, ci) => {
+        const c = getTeamCell(ri, ci);
+        if (c.gray) return '<td style="background:#374151"></td>';
+        if (c.empty) return '<td></td>';
+        if (c.won) {
+          return `<td class="mx-win"><strong style="color:#b91c1c">V</strong><span class="mx-sub">${c.myScore}</span></td>`;
+        }
+        return `<td class="mx-lose"><span style="color:#111">${c.myScore}</span></td>`;
+      }).join('');
+      const s = stats[ri];
+      const ind = s.TS - s.TR;
+      return `
+        <tr>
+          <td style="background:#f3f4f6;font-weight:bold">${ri + 1}</td>
+          <td style="text-align:left;white-space:nowrap">${escapeHtml(t.name)}</td>
+          ${cells}
+          <td><strong>${s.V}</strong></td><td>${s.M}</td><td>${s.TS}</td><td>${s.TR}</td>
+          <td style="color:${ind >= 0 ? '#16a34a' : '#dc2626'}">${ind >= 0 ? '+' : ''}${ind}</td>
+        </tr>
+      `;
+    }).join('');
+    return `
+      <div class="pool-matrix-wrap">
+        <h3 class="pool-matrix-title">${escapeHtml(teamPool.name)} <span class="tag">ピスト${teamPool.piste || '-'}</span></h3>
+        <div class="pool-matrix-scroll">
+          <table class="pool-matrix">
+            <thead><tr>${headers}</tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </div>
     `;
   }
@@ -269,6 +449,47 @@
 
   function renderOverallRank() {
     const container = $('#overallRank');
+    const isTeam = state.type && state.type.startsWith('team_');
+    // 団体戦：チーム順位を表示
+    if (isTeam) {
+      if (!state.teamPools || state.teamPools.length === 0) {
+        container.className = 'empty-state';
+        container.innerHTML = '団体プール戦未開始';
+        return;
+      }
+      const allRank = state.teamPools.flatMap(tp => calculateTeamPoolRanking(state.teams || [], tp, state.teamMatches || [], state.type));
+      const overall = allRank.sort((a, b) => {
+        if (b.winRate !== a.winRate) return b.winRate - a.winRate;
+        if (b.Ind !== a.Ind) return b.Ind - a.Ind;
+        return b.TS - a.TS;
+      }).map((s, i) => ({ ...s, rank: i + 1 }));
+      container.className = '';
+      container.innerHTML = `
+        <p class="hint">団体戦 → チーム単位の順位</p>
+        <table>
+          <thead>
+            <tr><th>順位</th><th>チーム名</th>
+            <th class="num">勝</th><th class="num">試合</th><th class="num">勝率</th>
+            <th class="num">Ind</th><th class="num">得点</th></tr>
+          </thead>
+          <tbody>
+            ${overall.map(s => `
+              <tr class="rank-${s.rank}">
+                <td>${s.rank}</td>
+                <td><strong>${escapeHtml(s.name)}</strong></td>
+                <td class="num">${s.V}</td>
+                <td class="num">${s.M}</td>
+                <td class="num">${(s.winRate * 100).toFixed(0)}%</td>
+                <td class="num">${s.Ind > 0 ? '+' + s.Ind : s.Ind}</td>
+                <td class="num">${s.TS}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      return;
+    }
+    // 個人戦
     if (!state.pools || state.pools.length === 0) {
       container.className = 'empty-state';
       container.innerHTML = 'プール戦未開始';
