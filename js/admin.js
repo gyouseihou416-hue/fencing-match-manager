@@ -767,11 +767,11 @@
                   ${isRelay ? `<td class="cumulative">${b.completed ? `${b.cumulativeA} - ${b.cumulativeB}` : '-'}</td>` : `<td>${b.winner === 'A' ? escapeHtml(teamA.name) : (b.winner === 'B' ? escapeHtml(teamB.name) : '-')}${forfeit ? '（不戦勝）' : ''}</td>`}
                   <td>
                     ${forfeit ? '<span class="hint">自動確定</span>' : `<button class="small ${b.completed ? 'secondary' : ''}" data-tb-confirm="${tm.id}" data-tb-bout="${bi}">${b.completed ? '修正' : '確定'}</button>`}
-                    ${isTie && b.completed ? `
-                      <div style="margin-top:4px;font-size:0.75rem">
-                        <span style="color:#d97706">⏱延長：</span>
-                        <button class="small ${tieA ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="A">${escapeHtml(teamA.name)}</button>
-                        <button class="small ${tieB ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="B">${escapeHtml(teamB.name)}</button>
+                    ${isTie && !forfeit ? `
+                      <div style="margin-top:4px;font-size:0.75rem;padding:4px;background:#fef3c7;border-radius:4px">
+                        <div style="color:#d97706;font-weight:bold">⏱ 同点です。延長戦勝者を選んでください：</div>
+                        <button class="small ${tieA ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="A">${escapeHtml(teamA.name)}勝ち</button>
+                        <button class="small ${tieB ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="B">${escapeHtml(teamB.name)}勝ち</button>
                       </div>
                     ` : ''}
                   </td>
@@ -811,6 +811,10 @@
           b.tieBreakWinner = null;
           recomputeTeamMatch(tm);
         } else {
+          // 同点なら案内表示
+          if (b.scoreA === b.scoreB && b.scoreA > 0) {
+            alert('同点 (' + b.scoreA + '-' + b.scoreB + ') です。下の延長戦ボタンで勝者を選んでください。');
+          }
           recordTeamBout(tm, bi, b.scoreA, b.scoreB, null);
         }
         await save();
@@ -978,13 +982,13 @@
     const isTeam = isTeamMode();
     container.className = '';
 
-    // SVG ブラケット
-    const svgPart = `
+    // SVG ブラケット（renderBracketSvg未定義時はスキップ）
+    const svgPart = (typeof renderBracketSvg === 'function') ? `
       <div class="card">
         <h3 style="margin-top:0;font-size:1rem;color:#6b7280">📊 ブラケット俯瞰</h3>
         <div class="svg-bracket">${renderBracketSvg(state.tournament, escapeHtml)}</div>
       </div>
-    `;
+    ` : '<div class="card empty-state hint">⚠ tournament.js が古いバージョンです。最新版をGitHubにアップロードしてください</div>';
 
     // 各試合の編集UI
     const t = state.tournament;
