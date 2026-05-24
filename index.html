@@ -24,7 +24,17 @@
 
     <div class="card">
       <h2>新しい大会を作る</h2>
-      <a href="admin.html"><button>＋ 新規大会作成へ</button></a>
+      <p class="hint">大会の種類を選んでください</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <a href="admin.html?type=individual"><button>👤 個人戦を作成</button></a>
+        <a href="admin.html?type=team_kohaku"><button style="background:#1f8a4c">👥 団体戦・紅白戦を作成</button></a>
+        <a href="admin.html?type=team_relay"><button style="background:#d97706">🏃 団体戦・イタリアンリレーを作成</button></a>
+      </div>
+      <p class="hint" style="margin-top:8px">
+        ・<strong>個人戦</strong>：1対1の通常大会<br>
+        ・<strong>団体戦・紅白戦</strong>：3人対3人、5本×9試合で先に5勝したチームが勝利<br>
+        ・<strong>団体戦・リレー</strong>：3人対3人、累積45本先取
+      </p>
     </div>
 
     <div class="card">
