@@ -257,18 +257,24 @@
     $('#btnAddFencer').addEventListener('click', async () => {
       const name = $('#fName').value.trim();
       if (!name) { alert('名前を入力してください'); return; }
-      state.fencers.push({
+      const teamName = $('#fTeamName') ? $('#fTeamName').value.trim() : '';
+      const fencer = {
         id: 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
         name,
         club: $('#fClub').value.trim(),
         seed: Number($('#fSeed').value) || null,
-      });
+        teamName: isTeamMode() ? teamName : '',
+      };
+      state.fencers.push(fencer);
+      if (isTeamMode() && teamName) syncTeamFromFencer(fencer);
       $('#fName').value = '';
       $('#fClub').value = '';
+      if ($('#fTeamName')) $('#fTeamName').value = '';
       $('#fSeed').value = '';
       $('#fName').focus();
       await save();
       renderFencers();
+      renderTeams();
     });
 
     $('#btnBulkImport').addEventListener('click', async () => {
@@ -276,17 +282,65 @@
       if (!text) return;
       const lines = text.split(/\r?\n/).filter((l) => l.trim());
       lines.forEach((line) => {
-        const [name, club, seed] = line.split(',').map((s) => (s || '').trim());
+        const [name, club, seed, teamName] = line.split(',').map((s) => (s || '').trim());
         if (!name) return;
-        state.fencers.push({
+        const f = {
           id: 'f_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
           name, club: club || '', seed: Number(seed) || null,
-        });
+          teamName: isTeamMode() ? (teamName || '') : '',
+        };
+        state.fencers.push(f);
+        if (isTeamMode() && teamName) syncTeamFromFencer(f);
       });
       $('#fBulk').value = '';
       await save();
       renderFencers();
+      renderTeams();
     });
+  }
+
+  /**
+   * 選手のteamNameを見て、対応するチームに自動登録
+   * - チームが存在しない場合は新規作成
+   * - 既存チームの空き枠（members[0..2]）に追加、満員なら reserve に
+   */
+  function syncTeamFromFencer(fencer) {
+    if (!fencer.teamName) return;
+    let team = state.teams.find(t => t.name === fencer.teamName);
+    if (!team) {
+      if (state.teams.length >= 32) {
+        alert('チームは最大32チームまでです');
+        return;
+      }
+      team = {
+        id: 'team_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
+        name: fencer.teamName,
+        seed: null,
+        members: ['', '', ''],
+        reserve: '',
+        memberFencerIds: ['', '', ''],
+        reserveFencerId: '',
+      };
+      state.teams.push(team);
+    }
+    // 既存メンバーに含まれているかチェック
+    if (!team.memberFencerIds) team.memberFencerIds = ['', '', ''];
+    if (team.memberFencerIds.includes(fencer.id) || team.reserveFencerId === fencer.id) return;
+    // 空き枠を探す
+    for (let i = 0; i < 3; i++) {
+      if (!team.memberFencerIds[i]) {
+        team.memberFencerIds[i] = fencer.id;
+        team.members[i] = fencer.name;
+        return;
+      }
+    }
+    // 3枠埋まっていたら reserve へ
+    if (!team.reserveFencerId) {
+      team.reserveFencerId = fencer.id;
+      team.reserve = fencer.name;
+    } else {
+      alert(`チーム「${team.name}」は4名（リザーブ含む）が埋まっています。${fencer.name} は参加者には登録されましたがチーム未配属です。`);
+    }
   }
 
   function renderFencers() {
@@ -298,11 +352,13 @@
       if (b.seed == null) return -1;
       return a.seed - b.seed;
     });
+    const teamCol = isTeamMode();
     tbody.innerHTML = sorted.map((f) => `
       <tr>
         <td>${f.seed ?? '-'}</td>
         <td>${escapeHtml(f.name)}</td>
         <td>${escapeHtml(f.club)}</td>
+        ${teamCol ? `<td>${escapeHtml(f.teamName || '')}</td>` : ''}
         <td>
           <button class="small secondary" data-del="${f.id}">削除</button>
         </td>
@@ -348,24 +404,30 @@
     if (!container) return;
     const sorted = [...(state.teams || [])].sort((a, b) => (a.seed || 999) - (b.seed || 999));
     if (sorted.length === 0) {
-      container.innerHTML = '<p class="hint">まだチームが登録されていません</p>';
+      container.innerHTML = '<p class="hint">まだチームが登録されていません。「② 参加者」タブで「所属チーム名」を入力して登録すると自動でチーム化されます。</p>';
       return;
     }
-    container.innerHTML = sorted.map((t) => `
+    container.innerHTML = sorted.map((t) => {
+      const memberCount = (t.memberFencerIds || []).filter(x => x).length;
+      const memberStatus = memberCount >= 3 ? '✅ 3名揃い' : (memberCount === 2 ? '⚠ 2名のみ（紅白戦は一部不戦勝、リレー不可）' : '❌ 人数不足');
+      return `
       <div class="team-card" data-team-id="${t.id}">
         <h3>
           <input type="text" class="team-name-input" data-team-id="${t.id}" value="${escapeHtml(t.name)}" style="font-size:1rem;font-weight:bold;width:200px">
           <input type="number" class="team-seed-input" data-team-id="${t.id}" value="${t.seed || ''}" placeholder="シード" style="width:80px">
+          <span class="tag" style="background:${memberCount >= 3 ? 'var(--color-success)' : 'var(--color-warning)'}">${memberStatus}</span>
           <button class="small secondary" data-team-del="${t.id}">削除</button>
         </h3>
         <div class="team-members">
           <label>選手1<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="0" value="${escapeHtml(t.members[0] || '')}" style="width:100%"></label>
           <label>選手2<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="1" value="${escapeHtml(t.members[1] || '')}" style="width:100%"></label>
           <label>選手3<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="2" value="${escapeHtml(t.members[2] || '')}" style="width:100%"></label>
-          <label>控え<br><input type="text" class="team-reserve-input" data-team-id="${t.id}" value="${escapeHtml(t.reserve || '')}" style="width:100%"></label>
+          <label>リザーブ（控え）<br><input type="text" class="team-reserve-input" data-team-id="${t.id}" value="${escapeHtml(t.reserve || '')}" style="width:100%"></label>
         </div>
+        ${t.substitutionUsed ? `<p class="hint" style="color:var(--color-warning)">⚠ リザーブ使用済み（${escapeHtml(t.members[t.substitutedOut] || '')}が出場中、${escapeHtml(t.reserve || '')}は控え）</p>` : ''}
       </div>
-    `).join('');
+    `;
+    }).join('');
     container.querySelectorAll('.team-name-input').forEach(inp => {
       inp.addEventListener('change', async () => {
         const t = state.teams.find(x => x.id === inp.dataset.teamId);
@@ -410,6 +472,14 @@
           return;
         }
         if ((state.teams || []).length < 2) { alert('チームを2チーム以上登録してください'); return; }
+        // リレーは全チーム3人以上必要
+        if (state.type === 'team_relay') {
+          const errors = validateTeamsForRelay(state.teams);
+          if (errors.length > 0) {
+            alert('イタリアンリレーは3人未満のチームでは実施できません：\n' + errors.join('\n'));
+            return;
+          }
+        }
         if (state.teamPools.length > 0 && !confirm('既存の団体プールを上書きします。よろしいですか？')) return;
         const poolCount = Number($('#poolCount').value) || Math.max(1, Math.ceil(state.teams.length / 4));
         const { pools, teamMatches } = generateTeamPools(state.teams, poolCount, state.type);
@@ -652,6 +722,11 @@
     const dispA = isRelay ? cumA : winsA;
     const dispB = isRelay ? cumB : winsB;
     const targetText = isRelay ? '先に45本' : '先に5勝';
+    const aMembers = teamA ? (teamA.memberFencerIds || []).filter(x => x).length : 0;
+    const bMembers = teamB ? (teamB.memberFencerIds || []).filter(x => x).length : 0;
+    const memberWarn = (aMembers < 3 || bMembers < 3) ? `<p class="hint" style="color:var(--color-warning)">⚠ ${aMembers < 3 ? teamA.name+'は'+aMembers+'人' : ''}${bMembers < 3 ? (aMembers < 3 ? '・' : '')+teamB.name+'は'+bMembers+'人' : ''}（欠員試合は自動5-0）</p>` : '';
+    const reserveBtnA = (teamA && teamA.reserveFencerId && !teamA.substitutionUsed) ? `<button class="small warning" data-reserve-match="${tm.id}" data-reserve-side="A">🔄 ${escapeHtml(teamA.name)}のリザーブ投入</button>` : '';
+    const reserveBtnB = (teamB && teamB.reserveFencerId && !teamB.substitutionUsed) ? `<button class="small warning" data-reserve-match="${tm.id}" data-reserve-side="B">🔄 ${escapeHtml(teamB.name)}のリザーブ投入</button>` : '';
     return `
       <details class="team-card" ${tm.completed ? '' : 'open'}>
         <summary style="cursor:pointer;font-weight:bold">
@@ -659,6 +734,8 @@
           - <strong style="color:var(--color-primary)">${dispB}</strong> ${escapeHtml(tm.teamBName)}
           ${tm.completed ? `<span class="tag" style="background:var(--color-success)">🏆 ${escapeHtml(tm.winner === 'A' ? tm.teamAName : tm.teamBName)}</span>` : `<small style="color:#6b7280">（${targetText}）</small>`}
         </summary>
+        ${memberWarn}
+        ${(reserveBtnA || reserveBtnB) ? `<div style="margin:8px 0;display:flex;gap:8px;flex-wrap:wrap">${reserveBtnA}${reserveBtnB}</div>` : ''}
         <table class="team-bout-table" style="margin-top:8px">
           <thead>
             <tr><th>#</th><th>選手A</th><th class="num">スコアA</th><th class="num">スコアB</th><th>選手B</th>${isRelay ? '<th class="num">累計</th>' : '<th>勝者</th>'}<th></th></tr>
@@ -668,19 +745,21 @@
               const pa = teamA && teamA.members[b.playerAIdx] || `選手${b.playerAIdx+1}`;
               const pb = teamB && teamB.members[b.playerBIdx] || `選手${b.playerBIdx+1}`;
               const max = isRelay ? (bi+1)*5 : 5;
-              const isTie = b.scoreA === b.scoreB && b.scoreA > 0;
+              const isTie = b.scoreA === b.scoreB && b.scoreA > 0 && !b.forfeit;
               const tieA = b.tieBreakWinner === 'A';
               const tieB = b.tieBreakWinner === 'B';
+              const forfeit = b.forfeit;
+              const rowBg = forfeit ? 'background:#fef2f2' : (b.completed ? 'background:#f0fdf4' : '');
               return `
-                <tr ${b.completed ? 'style="background:#f0fdf4"' : ''}>
-                  <td>${bi+1}${tieA||tieB?' ⏱':''}</td>
-                  <td>${escapeHtml(pa)}${tieA?' 🏆':''}</td>
-                  <td class="num"><input type="number" min="0" max="${max}" value="${b.scoreA}" data-tb-match="${tm.id}" data-tb-bout="${bi}" data-tb-side="A" style="width:55px;text-align:right"></td>
-                  <td class="num"><input type="number" min="0" max="${max}" value="${b.scoreB}" data-tb-match="${tm.id}" data-tb-bout="${bi}" data-tb-side="B" style="width:55px;text-align:right"></td>
-                  <td>${escapeHtml(pb)}${tieB?' 🏆':''}</td>
-                  ${isRelay ? `<td class="cumulative">${b.completed ? `${b.cumulativeA} - ${b.cumulativeB}` : '-'}</td>` : `<td>${b.winner === 'A' ? escapeHtml(teamA.name) : (b.winner === 'B' ? escapeHtml(teamB.name) : '-')}</td>`}
+                <tr style="${rowBg}">
+                  <td>${bi+1}${tieA||tieB?' ⏱':''}${forfeit ? ' 🚫' : ''}</td>
+                  <td>${escapeHtml(pa)}${forfeit === 'A' ? ' <span style="color:#ef4444">(欠員)</span>' : ''}${tieA?' 🏆':''}</td>
+                  <td class="num"><input type="number" min="0" max="${max}" value="${b.scoreA}" data-tb-match="${tm.id}" data-tb-bout="${bi}" data-tb-side="A" style="width:55px;text-align:right" ${forfeit ? 'disabled' : ''}></td>
+                  <td class="num"><input type="number" min="0" max="${max}" value="${b.scoreB}" data-tb-match="${tm.id}" data-tb-bout="${bi}" data-tb-side="B" style="width:55px;text-align:right" ${forfeit ? 'disabled' : ''}></td>
+                  <td>${escapeHtml(pb)}${forfeit === 'B' ? ' <span style="color:#ef4444">(欠員)</span>' : ''}${tieB?' 🏆':''}</td>
+                  ${isRelay ? `<td class="cumulative">${b.completed ? `${b.cumulativeA} - ${b.cumulativeB}` : '-'}</td>` : `<td>${b.winner === 'A' ? escapeHtml(teamA.name) : (b.winner === 'B' ? escapeHtml(teamB.name) : '-')}${forfeit ? '（不戦勝）' : ''}</td>`}
                   <td>
-                    <button class="small ${b.completed ? 'secondary' : ''}" data-tb-confirm="${tm.id}" data-tb-bout="${bi}">${b.completed ? '修正' : '確定'}</button>
+                    ${forfeit ? '<span class="hint">自動確定</span>' : `<button class="small ${b.completed ? 'secondary' : ''}" data-tb-confirm="${tm.id}" data-tb-bout="${bi}">${b.completed ? '修正' : '確定'}</button>`}
                     ${isTie && b.completed ? `
                       <div style="margin-top:4px;font-size:0.75rem">
                         <span style="color:#d97706">⏱延長：</span>
@@ -741,6 +820,28 @@
         if (!tm) return;
         recordTeamBout(tm, bi, tm.bouts[bi].scoreA, tm.bouts[bi].scoreB, side);
         await save();
+        renderPools();
+        renderTournament();
+      });
+    });
+    // リザーブ投入
+    document.querySelectorAll('[data-reserve-match]').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const tmId = e.target.dataset.reserveMatch;
+        const side = e.target.dataset.reserveSide;
+        const tm = state.teamMatches.find(x => x.id === tmId);
+        if (!tm) return;
+        const team = side === 'A' ? state.teams.find(t => t.id === tm.teamA) : state.teams.find(t => t.id === tm.teamB);
+        if (!team) return;
+        const choice = prompt('交代する選手を選んでください：\n1: ' + (team.members[0]||'-') + '\n2: ' + (team.members[1]||'-') + '\n3: ' + (team.members[2]||'-') + '\n\n番号を入力（1-3）');
+        const idx = Number(choice) - 1;
+        if (idx < 0 || idx > 2) { alert('1〜3を入力してください'); return; }
+        if (!team.members[idx]) { alert('その枠には選手がいません'); return; }
+        if (!confirm(team.members[idx] + ' → ' + team.reserve + ' に交代します。交代された選手はこれ以降の試合に出場できません。よろしいですか？')) return;
+        const result = substituteReserve(tm, team, side, idx, 0);
+        if (!result.ok) { alert(result.reason); return; }
+        await save();
+        renderTeams();
         renderPools();
         renderTournament();
       });
@@ -812,6 +913,14 @@
 
   async function generateTeamTournament() {
     if ((state.teams || []).length < 2) { alert('チームを2チーム以上登録してください'); return; }
+    // リレーは全チーム3人以上必要
+    if (state.type === 'team_relay') {
+      const errors = validateTeamsForRelay(state.teams);
+      if (errors.length > 0) {
+        alert('イタリアンリレーは3人未満のチームでは実施できません：\n' + errors.join('\n'));
+        return;
+      }
+    }
     let advance;
     if (state.teamFormat === 'ko_only') {
       // シード順にそのまま

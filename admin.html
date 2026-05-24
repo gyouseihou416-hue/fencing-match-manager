@@ -115,19 +115,20 @@
     <section id="tab-fencers" class="tab-panel" style="display:none">
       <div class="card">
         <h2>参加者の登録</h2>
-        <p class="hint">シード値は小さいほど強い（1がトップシード）。空欄なら登録順で扱われます。</p>
+        <p class="hint">シード値は小さいほど強い（1がトップシード）。空欄なら登録順で扱われます。<span class="team-only" style="display:none;color:var(--color-warning)">団体戦：「所属チーム名」を入力すると自動でチーム編成されます</span></p>
         <div class="toolbar">
           <input type="text" id="fName" placeholder="選手名">
-          <input type="text" id="fClub" placeholder="所属（任意）">
+          <input type="text" id="fClub" placeholder="所属クラブ（任意）">
+          <input type="text" id="fTeamName" placeholder="所属チーム名（団体戦のみ）" class="team-only" style="display:none">
           <input type="number" id="fSeed" placeholder="シード" style="width:80px" min="1">
           <button id="btnAddFencer">追加</button>
         </div>
-        <p class="hint">まとめて貼り付け：1行1人「名前,所属,シード」形式のCSVを下に貼ってインポート</p>
-        <textarea id="fBulk" rows="4" style="width:100%;font-family:monospace" placeholder="例：&#10;山田太郎,広島フェンシングクラブ,1&#10;佐藤花子,広島大学,2"></textarea>
+        <p class="hint">まとめて貼り付け：1行1人「名前,所属,シード<span class="team-only" style="display:none">,チーム名</span>」形式のCSV</p>
+        <textarea id="fBulk" rows="4" style="width:100%;font-family:monospace" placeholder="例：&#10;山田太郎,広島FC,1&#10;佐藤花子,広島大学,2"></textarea>
         <div style="margin-top:6px"><button id="btnBulkImport" class="secondary small">CSVインポート</button></div>
         <table>
           <thead>
-            <tr><th>シード</th><th>名前</th><th>所属</th><th></th></tr>
+            <tr><th>シード</th><th>名前</th><th>所属</th><th class="team-only" style="display:none">チーム</th><th></th></tr>
           </thead>
           <tbody id="fencerTbody"></tbody>
         </table>

@@ -31,8 +31,8 @@ eq(countsA, [3, 3, 3], 'チームA: 各選手3試合');
 eq(countsB, [3, 3, 3], 'チームB: 各選手3試合');
 
 console.log('--- 3. 試合生成 ---');
-const teamA = { id: 'tA', name: '広島A', members: ['山田', '佐藤', '鈴木'] };
-const teamB = { id: 'tB', name: '広島B', members: ['田中', '高橋', '伊藤'] };
+const teamA = { id: 'tA', name: '広島A', members: ['山田', '佐藤', '鈴木'], memberFencerIds: ['1','2','3'] };
+const teamB = { id: 'tB', name: '広島B', members: ['田中', '高橋', '伊藤'], memberFencerIds: ['4','5','6'] };
 const tmKohaku = team.createTeamMatch(teamA, teamB, 'team_kohaku');
 eq(tmKohaku.bouts.length, 9, '紅白戦: 9試合生成');
 eq(tmKohaku.completed, false, '紅白戦: 開始時は未完了');
@@ -96,10 +96,10 @@ eq(tm4.bouts[0].tieBreakWinner, 'A', 'tieBreakWinner記録');
 
 console.log('--- 8. 団体プール生成 ---');
 const teams = [
-  { id: 't1', name: 'チーム1', seed: 1, members: ['a','b','c'] },
-  { id: 't2', name: 'チーム2', seed: 2, members: ['a','b','c'] },
-  { id: 't3', name: 'チーム3', seed: 3, members: ['a','b','c'] },
-  { id: 't4', name: 'チーム4', seed: 4, members: ['a','b','c'] },
+  { id: 't1', name: 'チーム1', seed: 1, members: ['a','b','c'], memberFencerIds: ['1','2','3'] },
+  { id: 't2', name: 'チーム2', seed: 2, members: ['a','b','c'], memberFencerIds: ['4','5','6'] },
+  { id: 't3', name: 'チーム3', seed: 3, members: ['a','b','c'], memberFencerIds: ['7','8','9'] },
+  { id: 't4', name: 'チーム4', seed: 4, members: ['a','b','c'], memberFencerIds: ['10','11','12'] },
 ];
 const { pools, teamMatches } = team.generateTeamPools(teams, 1, 'team_kohaku');
 eq(pools.length, 1, '1プール生成');
@@ -135,6 +135,58 @@ eq(tournament.roundLabel(2, 1), '決勝', '2ラウンド・ri1は決勝');
 eq(tournament.roundLabel(3, 0), '準々決勝', '3ラウンド・ri0は準々決勝');
 eq(tournament.roundLabel(5, 0), '1回戦', '5ラウンド・ri0は1回戦');
 eq(tournament.roundLabel(5, 4), '決勝', '5ラウンド・ri4は決勝');
+
+console.log('--- 12. 紅白戦の不戦勝（2人チーム） ---');
+const teamShort = {
+  id: 'tShort', name: '欠員チーム',
+  memberFencerIds: ['f1', 'f2', ''],
+  members: ['佐藤', '田中', ''],
+  reserve: ''
+};
+const teamFull = {
+  id: 'tFull', name: '完全チーム',
+  memberFencerIds: ['f3', 'f4', 'f5'],
+  members: ['鈴木', '高橋', '伊藤'],
+  reserve: ''
+};
+const tmF = team.createTeamMatch(teamShort, teamFull, 'team_kohaku');
+const forfeitBouts = tmF.bouts.filter(b => b.forfeit);
+truthy(forfeitBouts.length > 0, '欠員試合がマークされる');
+const aForfeitBouts = tmF.bouts.filter(b => b.forfeit === 'A');
+eq(aForfeitBouts.length, 3, 'A選手3が3試合不戦勝（idx=2が3回出場）');
+aForfeitBouts.forEach((b, i) => {
+  eq(b.scoreA, 0, '不戦勝のscoreA=0 (#' + (i+1) + ')');
+  eq(b.scoreB, 5, '不戦勝のscoreB=5 (#' + (i+1) + ')');
+  eq(b.winner, 'B', '不戦勝の勝者はB (#' + (i+1) + ')');
+});
+
+console.log('--- 13. リレー3人未満は不可 ---');
+const teamsRelay = [
+  { id: 't1', name: 'チーム1', seed: 1, members: ['a','b','c'], memberFencerIds: ['1','2','3'] },
+  { id: 't2', name: 'チーム2', seed: 2, members: ['a','b',''], memberFencerIds: ['4','5',''] },
+];
+const errs = team.validateTeamsForRelay(teamsRelay);
+eq(errs.length, 1, '1チームがエラー');
+truthy(errs[0].indexOf('チーム2') >= 0, 'エラーメッセージにチーム名');
+
+console.log('--- 14. リザーブ交代 ---');
+const teamWithReserve = {
+  id: 'tR', name: 'リザーブあり',
+  members: ['山田', '佐藤', '鈴木'],
+  memberFencerIds: ['f1', 'f2', 'f3'],
+  reserve: '田中',
+  reserveFencerId: 'f4',
+  substitutionUsed: false,
+};
+const teamOther = { id: 'tO', name: '相手', members: ['x','y','z'], memberFencerIds: ['a','b','c'], reserve: '' };
+const tmSub = team.createTeamMatch(teamWithReserve, teamOther, 'team_kohaku');
+const subResult = team.substituteReserve(tmSub, teamWithReserve, 'A', 0, 0);
+eq(subResult.ok, true, 'リザーブ投入成功');
+eq(teamWithReserve.substitutionUsed, true, '交代済みフラグ');
+eq(teamWithReserve.members[0], '田中', 'リザーブが選手1の位置に');
+eq(teamWithReserve.reserve, '山田', '元の選手1がリザーブ枠に');
+const subResult2 = team.substituteReserve(tmSub, teamWithReserve, 'A', 1, 0);
+eq(subResult2.ok, false, '2回目の交代は不可');
 
 console.log('====================');
 console.log('Pass: ' + pass + '  Fail: ' + fail);
