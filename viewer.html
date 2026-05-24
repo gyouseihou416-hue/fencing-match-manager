@@ -3,19 +3,23 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>観戦ページ - フェンシング試合管理</title>
+  <title>観戦ページ - フェンシングマネージャーシステム（FMS）</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header class="site-header">
-    <h1>⚔️ ライブ観戦</h1>
+    <h1>⚔️ FMS ライブ観戦</h1>
     <nav>
-      <a href="index.html">大会一覧</a>
+      <button id="btnReload" class="small">🔄 更新</button>
+      <label class="auto-reload-label" style="font-size:0.85rem;margin-left:8px">
+        <input type="checkbox" id="chkAutoReload"> 自動更新（3分毎）
+      </label>
     </nav>
   </header>
 
   <main>
     <div id="statusBar" class="status-bar">読み込み中…</div>
+    <p class="hint" style="text-align:right;margin:4px 0 8px">最終更新：<span id="lastUpdated">-</span></p>
 
     <div class="card">
       <h2>📊 進行状況</h2>
@@ -43,6 +47,11 @@
       <div id="overallRank" class="empty-state">プール戦未開始</div>
     </div>
 
+    <div class="card" id="teamCard" style="display:none">
+      <h2>👥 団体戦 進行状況</h2>
+      <div id="teamView" class="empty-state">団体戦未開始</div>
+    </div>
+
     <div class="card">
       <h2>🏆 トーナメント表</h2>
       <div id="tournamentView" class="tournament-bracket empty-state">トーナメント未開始</div>
@@ -63,9 +72,15 @@
     </div>
   </main>
 
+  <footer class="site-footer">
+    <p>© 2026 尾上正幸 / フェンシングマネージャーシステム（FMS）</p>
+    <p class="hint">個人・教育目的での利用は自由です。商用利用には事前許諾が必要です。無断使用・改変・再配布を禁止します。</p>
+  </footer>
+
   <script src="js/firebase-config.js"></script>
   <script src="js/store.js"></script>
   <script src="js/ranking.js"></script>
+  <script src="js/team.js"></script>
   <script src="js/viewer.js"></script>
 </body>
 </html>

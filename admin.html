@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>運営画面 - フェンシング試合管理</title>
+  <title>運営画面 - FMS フェンシングマネージャーシステム</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header class="site-header">
-    <h1>⚔️ フェンシング試合管理 <span style="font-size:0.85rem;opacity:0.7;">運営画面</span></h1>
+    <h1>⚔️ FMS <span style="font-size:0.85rem;opacity:0.7;">運営画面</span></h1>
     <nav>
       <a href="index.html">大会一覧</a>
       <a id="viewerLink" href="#">観戦ページを開く</a>
@@ -21,6 +21,7 @@
     <div class="tab-bar">
       <button data-tab="basic" class="active">① 大会情報</button>
       <button data-tab="fencers">② 参加者</button>
+      <button data-tab="teams" class="team-only" style="display:none">②-2 チーム編成</button>
       <button data-tab="pool">③ プール戦</button>
       <button data-tab="tournament">④ トーナメント</button>
       <button data-tab="result">⑤ 結果</button>
@@ -48,6 +49,25 @@
           </div>
           <div>
             <label>カテゴリー<br><input type="text" id="tCategory" style="width:100%" placeholder="例：男子個人 / 中学生女子"></label>
+          </div>
+          <div>
+            <label>大会タイプ<br>
+              <select id="tType" style="width:100%">
+                <option value="individual">個人戦</option>
+                <option value="team_kohaku">団体戦：紅白戦（5本×9試合の勝数）</option>
+                <option value="team_relay">団体戦：イタリアンリレー（45本累積）</option>
+              </select>
+            </label>
+            <p class="hint">作成後の変更は不可。新規作成して切り替えてください</p>
+          </div>
+          <div id="tFormatTeamWrapper" style="display:none">
+            <label>団体戦の進行方式<br>
+              <select id="tTeamFormat" style="width:100%">
+                <option value="pool_then_ko">プール戦 → トーナメント</option>
+                <option value="ko_only">いきなりトーナメント</option>
+              </select>
+            </label>
+            <p class="hint">プール戦方式は4チーム前後でグループ戦→上位通過</p>
           </div>
           <div>
             <label>プール戦の点数<br><input type="number" id="tPoolScore" value="5" min="1" max="15" style="width:100%"></label>
@@ -114,6 +134,20 @@
       </div>
     </section>
 
+    <!-- ②-2 チーム編成（団体戦のみ） -->
+    <section id="tab-teams" class="tab-panel" style="display:none">
+      <div class="card">
+        <h2>チーム編成</h2>
+        <p class="hint">団体戦では1チーム3名（控え1名まで可）。最大32チーム対応。</p>
+        <div class="toolbar">
+          <input type="text" id="teamName" placeholder="チーム名" style="width:200px">
+          <input type="number" id="teamSeed" placeholder="シード" style="width:80px" min="1">
+          <button id="btnAddTeam">チーム追加</button>
+        </div>
+        <div id="teamsContainer"></div>
+      </div>
+    </section>
+
     <!-- ③ プール戦 -->
     <section id="tab-pool" class="tab-panel" style="display:none">
       <div class="card">
@@ -172,12 +206,18 @@
     </section>
   </main>
 
+  <footer class="site-footer">
+    <p>© 2026 尾上正幸 / フェンシングマネージャーシステム（FMS）</p>
+    <p class="hint">個人・教育目的での利用は自由です。商用利用には事前許諾が必要です。無断使用・改変・再配布を禁止します。</p>
+  </footer>
+
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="js/firebase-config.js"></script>
   <script src="js/store.js"></script>
   <script src="js/ranking.js"></script>
   <script src="js/pool.js"></script>
   <script src="js/tournament.js"></script>
+  <script src="js/team.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

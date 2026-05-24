@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>フェンシング試合管理システム</title>
+  <title>FMS - フェンシングマネージャーシステム</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header class="site-header">
-    <h1>⚔️ フェンシング試合管理</h1>
+    <h1>⚔️ フェンシングマネージャーシステム <span style="font-size:0.85rem;opacity:0.7;">FMS</span></h1>
     <nav>
       <a href="index.html">大会一覧</a>
       <a href="admin.html">新規大会作成</a>
@@ -39,6 +39,11 @@
     </div>
   </main>
 
+  <footer class="site-footer">
+    <p>© 2026 尾上正幸 / フェンシングマネージャーシステム（FMS）</p>
+    <p class="hint">個人・教育目的での利用は自由です。商用利用には事前許諾が必要です。無断使用・改変・再配布を禁止します。</p>
+  </footer>
+
   <script src="js/firebase-config.js"></script>
   <script src="js/store.js"></script>
   <script>
@@ -54,7 +59,7 @@
         <table>
           <thead>
             <tr>
-              <th>大会名</th><th>日付</th><th>剣種</th><th>状態</th><th></th>
+              <th>大会名</th><th>日付</th><th>剣種</th><th>タイプ</th><th>状態</th><th></th>
             </tr>
           </thead>
           <tbody>
@@ -63,6 +68,7 @@
                 <td>${escapeHtml(t.name || '無題')}</td>
                 <td>${escapeHtml(t.date || '')}</td>
                 <td><span class="tag weapon-${t.weapon || 'fleuret'}">${weaponLabel(t.weapon)}</span></td>
+                <td>${typeLabel(t.type)}</td>
                 <td>${statusLabel(t.status)}</td>
                 <td>
                   <a href="admin.html?id=${encodeURIComponent(t.id)}"><button class="small">管理</button></a>
@@ -76,6 +82,7 @@
     })();
     function escapeHtml(s) { return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
     function weaponLabel(w) { return ({fleuret:'フルーレ', epee:'エペ', sabre:'サーブル'}[w] || 'フルーレ'); }
+    function typeLabel(t) { return ({'individual':'個人戦', 'team_kohaku':'団体・紅白戦', 'team_relay':'団体・リレー'}[t] || '個人戦'); }
     function statusLabel(s) { return ({pool:'プール戦中', tournament:'トーナメント中', done:'終了'}[s] || '準備中'); }
   </script>
 </body>

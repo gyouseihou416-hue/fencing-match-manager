@@ -1,21 +1,43 @@
-MIT License
+フェンシングマネージャーシステム（FMS）
+Fencing Manager System (FMS)
 
-Copyright (c) 2026 Fencing Match Manager Contributors
+Copyright (c) 2026 尾上正幸 (Masayuki Onoue) All Rights Reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+【利用規約 / Terms of Use】
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+本ソフトウェア（以下「本システム」という）に関する権利は、すべて著作権者である尾上正幸に帰属します。
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+1. 許諾される利用
+   以下の目的での利用は無償で許諾されます：
+   (a) 個人的な学習・研究目的での利用
+   (b) 学校・部活動・地域フェンシングクラブ等での教育目的の利用
+   (c) 非営利のフェンシング大会・練習会での利用
+
+2. 事前許諾が必要な利用
+   以下の利用には、著作権者からの書面による事前許諾が必要です：
+   (a) 商用利用（営利目的の大会運営、有料サービスへの組込み等）
+   (b) 第三者への有償での提供・販売・サブライセンス
+   (c) 本システムを基にした派生製品の作成・配布
+
+3. 禁止事項
+   (a) 著作権表示の削除・改変
+   (b) 著作権者の許諾なき再配布
+   (c) 本システムを利用した違法行為
+   (d) 著作権者の名誉を毀損する利用
+
+4. 免責事項
+   本システムは現状有姿（AS IS）で提供されます。本システムの利用により生じたいかなる損害についても、
+   著作権者は一切の責任を負いません。
+
+5. 問い合わせ
+   商用利用に関する許諾、その他お問い合わせは下記までご連絡ください：
+   メール: gyouseihou416@gmail.com
+
+------------------------------------------------------------
+English Summary:
+- Free for personal/educational/non-profit fencing club use.
+- Commercial use requires prior written permission from the copyright holder.
+- Redistribution and derivative works are not permitted without permission.
+- Provided "AS IS" without warranty of any kind.
+- Contact: gyouseihou416@gmail.com
+------------------------------------------------------------
