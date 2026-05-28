@@ -207,19 +207,19 @@ function renderBracketSvg(tournament, escapeHtml) {
   const { width, height, rounds, opts } = layout;
   const total = rounds.length;
 
-  // 色定義（CSS非依存：どのページでも同じ表示）
+  // 色定義（ナイトアリーナ：深紺×金×白でCSS非依存）
   const COLOR = {
-    boxFill: '#ffffff',
-    boxFillDone: '#f0fdf4',
-    boxStroke: '#d1d5db',
-    nameText: '#111827',
-    winnerText: '#b91c1c',
-    byeText: '#9ca3af',
-    scoreText: '#111827',
-    lineWon: '#b91c1c',
-    linePending: '#d1d5db',
-    midLine: '#e5e7eb',
-    roundLabel: '#6b7280',
+    boxFill:     '#1A2236',  // navy-700
+    boxFillDone: '#15321F',  // 完了は深緑寄り
+    boxStroke:   '#2C3A55',  // border
+    nameText:    '#E2E8F0',  // text (off-white)
+    winnerText:  '#EBC55B',  // gold-light
+    byeText:     '#64748B',  // text-mute
+    scoreText:   '#F8FAFC',  // white
+    lineWon:     '#D4A437',  // gold
+    linePending: '#334155',  // navy-500
+    midLine:     '#2C3A55',
+    roundLabel:  '#D4A437',  // gold
   };
 
   let parts = [];

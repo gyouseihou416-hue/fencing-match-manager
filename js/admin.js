@@ -434,7 +434,7 @@
         : '<p class="hint" style="margin:4px 0 6px">公式対戦順（3vs6/1vs5/2vs4…）に従います。順番を変えたい場合は右の走順番号を入れ替えてください。</p>';
       const memberRow = (idx) => `
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap">
-          <span style="display:inline-block;min-width:64px;padding:4px 8px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:0.8rem;font-weight:bold;text-align:center;flex-shrink:0">走順${idx + 1}</span>
+          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:64px;padding:5px 10px;background:linear-gradient(180deg,rgba(212,164,55,0.18),rgba(212,164,55,0.08));color:#EBC55B;border:1px solid rgba(212,164,55,0.35);border-radius:4px;font-size:0.8rem;font-weight:700;text-align:center;letter-spacing:0.04em;flex-shrink:0">走順${idx + 1}</span>
           <input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="${idx}" value="${escapeHtml(t.members[idx] || '')}" placeholder="選手${idx + 1}の名前" style="flex:1;min-width:0;padding:6px 8px;border:1px solid #d1d5db;border-radius:4px">
           <select class="team-member-order" data-team-id="${t.id}" data-idx="${idx}" title="この選手の走順を変更（入れ替え）" style="width:60px;padding:6px 4px;border:1px solid #d1d5db;border-radius:4px;flex-shrink:0">
             <option value="1" ${idx === 0 ? 'selected' : ''}>1</option>
@@ -831,8 +831,8 @@
                   <td>
                     ${forfeit ? '<span class="hint">自動確定</span>' : `<button class="small ${b.completed ? 'secondary' : ''}" data-tb-confirm="${tm.id}" data-tb-bout="${bi}">${b.completed ? '修正' : '確定'}</button>`}
                     ${isTie && !forfeit ? `
-                      <div style="margin-top:4px;font-size:0.75rem;padding:4px;background:#fef3c7;border-radius:4px">
-                        <div style="color:#d97706;font-weight:bold">⏱ 同点です。延長戦勝者を選んでください：</div>
+                      <div style="margin-top:4px;font-size:0.75rem;padding:6px;background:rgba(212,164,55,0.10);border:1px solid rgba(212,164,55,0.3);border-radius:4px">
+                        <div style="color:#EBC55B;font-weight:bold;margin-bottom:4px">⏱ 同点です。延長戦勝者を選んでください：</div>
                         <button class="small ${tieA ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="A">${escapeHtml(teamA.name)}勝ち</button>
                         <button class="small ${tieB ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="B">${escapeHtml(teamB.name)}勝ち</button>
                       </div>
