@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>利用ガイド - FMS フェンシングマネージャーシステム</title>
+  <meta name="description" content="フェンシング大会の運営をスマホ・PCから簡単に管理できるFMSの使い方ガイド" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .guide-hero {
+      background:
+        radial-gradient(ellipse at left top, rgba(212,164,55,0.25), transparent 55%),
+        radial-gradient(ellipse at right bottom, rgba(224,41,76,0.20), transparent 60%),
+        linear-gradient(135deg, #131C32 0%, #0B1220 100%);
+      padding: 60px 30px 50px;
+      text-align: center;
+      border-radius: 16px;
+      margin-bottom: 26px;
+      border: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+    .guide-hero::before {
+      content: '';
+      position: absolute;
+      right: -50px; top: -20px;
+      width: 360px; height: 240px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 240'><g fill='none' stroke='%23D4A437' stroke-width='1.5' opacity='0.18' stroke-linecap='round'><line x1='40' y1='200' x2='320' y2='30'/><line x1='40' y1='30' x2='320' y2='200'/><circle cx='40' cy='200' r='7'/><circle cx='320' cy='200' r='7'/></g></svg>");
+      background-repeat: no-repeat;
+      pointer-events: none;
+    }
+    .guide-hero h1 {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--white);
+      margin: 0 0 14px;
+      letter-spacing: 0.03em;
+      position: relative;
+      z-index: 1;
+    }
+    .guide-hero .lead {
+      font-size: 1.05rem;
+      color: var(--text);
+      max-width: 720px;
+      margin: 0 auto 22px;
+      line-height: 1.8;
+      position: relative;
+      z-index: 1;
+    }
+    .guide-hero .cta {
+      display: inline-flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .feature-item {
+      background: var(--navy-800);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      position: relative;
+    }
+    .feature-item .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-900);
+      font-size: 1.2rem;
+      margin-bottom: 10px;
+      font-weight: 900;
+    }
+    .feature-item h4 { margin: 0 0 6px; color: var(--white); font-size: 1rem; }
+    .feature-item p { margin: 0; color: var(--text-dim); font-size: 0.88rem; line-height: 1.6; }
+
+    .step {
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 18px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border-soft);
+      align-items: start;
+    }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-900);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.6rem;
+      font-weight: 900;
+      font-family: 'Inter', sans-serif;
+      box-shadow: 0 6px 20px rgba(212,164,55,0.25);
+    }
+    .step-body h3 { margin: 6px 0 8px; color: var(--white); font-size: 1.15rem; }
+    .step-body p { margin: 0 0 6px; color: var(--text); line-height: 1.8; }
+    .step-body .hint-box {
+      background: rgba(212,164,55,0.08);
+      border-left: 3px solid var(--gold);
+      padding: 8px 14px;
+      margin-top: 10px;
+      border-radius: 4px;
+      color: var(--gold-light);
+      font-size: 0.9rem;
+    }
+
+    .faq-item {
+      border-bottom: 1px solid var(--border-soft);
+      padding: 14px 0;
+    }
+    .faq-item summary {
+      cursor: pointer;
+      color: var(--white);
+      font-weight: 700;
+      font-size: 1rem;
+      padding-left: 26px;
+      position: relative;
+      list-style: none;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::before {
+      content: 'Q.';
+      position: absolute;
+      left: 0;
+      color: var(--gold);
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+    }
+    .faq-item[open] summary { color: var(--gold-light); }
+    .faq-item .answer {
+      padding: 12px 0 0 26px;
+      color: var(--text);
+      line-height: 1.8;
+      font-size: 0.95rem;
+      position: relative;
+    }
+    .faq-item .answer::before {
+      content: 'A.';
+      position: absolute;
+      left: 0;
+      color: var(--text-mute);
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+    }
+
+    .ribbon {
+      display: inline-block;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: var(--navy-900);
+      padding: 4px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      margin-bottom: 12px;
+    }
+
+    .price-card {
+      background:
+        radial-gradient(ellipse at center, rgba(212,164,55,0.10), transparent 70%),
+        var(--navy-700);
+      border: 1px solid rgba(212,164,55,0.4);
+      padding: 30px 24px;
+      border-radius: 14px;
+      text-align: center;
+    }
+    .price-card .free {
+      font-size: 3rem;
+      font-weight: 900;
+      color: var(--gold-light);
+      font-family: 'Inter', sans-serif;
+      text-shadow: 0 0 20px var(--gold-glow);
+    }
+
+    @media print {
+      body { background: white !important; color: #111 !important; }
+      header, footer, .cta, nav { display: none !important; }
+      .card, .guide-hero { background: white !important; border: 1px solid #ccc !important; color: #111 !important; box-shadow: none !important; }
+      .card h2, .step-body h3, .guide-hero h1 { color: #111 !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <h1>
+      <span class="brand-mark">⚔</span>
+      FMS
+      <span class="brand-tag">利用ガイド</span>
+    </h1>
+    <nav>
+      <a href="index.html">トップ</a>
+      <a href="user-guide.pdf" download>📄 PDFをダウンロード</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- ヒーロー -->
+    <section class="guide-hero">
+      <div class="ribbon">⚔ フェンシング速報 無料会員向け</div>
+      <h1>フェンシング大会を、スマホ1つで運営。</h1>
+      <p class="lead">
+        FMS（Fencing Manager System）は、個人戦から団体戦（紅白戦・イタリアンリレー）まで対応した、<br>
+        フェンシング大会専用の運営ツールです。プール戦・トーナメント・観戦画面まで一気通貫。
+      </p>
+      <div class="cta">
+        <a href="#apply"><button>🎟 専用URLを申請する</button></a>
+        <a href="#how-to"><button class="secondary">📖 使い方を見る</button></a>
+      </div>
+    </section>
+
+    <!-- 主な機能 -->
+    <div class="card">
+      <h2>🎯 主な機能</h2>
+      <div class="feature-grid">
+        <div class="feature-item">
+          <div class="icon">👤</div>
+          <h4>個人戦</h4>
+          <p>プール戦＋トーナメント。FIE公式準拠（V/M/Ind/TS）で順位を自動計算。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">👥</div>
+          <h4>団体戦・紅白戦</h4>
+          <p>3対3で5本×9試合。先に5勝したチームが勝利。公式対戦順に自動整列。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">🏃</div>
+          <h4>団体戦・リレー</h4>
+          <p>3対3、累積45本先取のイタリアンリレー方式。走順設定もカンタン。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">📺</div>
+          <h4>ライブ観戦</h4>
+          <p>QRコード1つで観客のスマホに進行状況を共有。会場で印刷して掲示可。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">📊</div>
+          <h4>プール対戦表</h4>
+          <p>マトリクス形式でV・得点・失点・差を一目で。観客にもわかりやすい。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">🏆</div>
+          <h4>SVGブラケット</h4>
+          <p>FIE標準のシード配置（1位最上・2位最下）。延長戦（タイブレーク）対応。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">⏱</div>
+          <h4>延長戦サポート</h4>
+          <p>同点時のV判定をボタンひとつで記録。スコアは同点のまま残せます。</p>
+        </div>
+        <div class="feature-item">
+          <div class="icon">🔄</div>
+          <h4>リザーブ交代</h4>
+          <p>団体戦の4人目（控え）を任意のタイミングで投入可能。1回までのルールも自動管理。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 料金 -->
+    <div class="card">
+      <h2>💰 料金</h2>
+      <div class="price-card">
+        <div class="ribbon">フェンシング速報 会員特典</div>
+        <div class="free">¥0</div>
+        <p style="margin: 8px 0 0; color: var(--text-dim)">無料会員になっていただいた方は完全無料でご利用いただけます</p>
+        <p style="margin-top: 14px; font-size: 0.88rem; color: var(--text-dim)">
+          ※利用人数・大会数の制限はありません<br>
+          ※インターネット接続が必要です（オフラインでも基本動作可）
+        </p>
+      </div>
+    </div>
+
+    <!-- 申請の流れ -->
+    <div class="card" id="apply">
+      <h2>📝 利用申請の流れ</h2>
+      <p class="hint">フェンシング速報の無料会員になっていただいた方は、以下の手順で専用URLをお渡しします。</p>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>フェンシング速報の無料会員になる</h3>
+          <p>まずは「フェンシング速報」のサイトから無料会員登録をしてください。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>FMS利用申請フォームから申請</h3>
+          <p>会員ページ内の「FMS利用申請」ボタンから、お名前・連絡先・利用予定（クラブ名等）をご記入ください。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>運営から専用URLが届く</h3>
+          <p>通常1〜2営業日以内に、ご登録のメールアドレスに「専用URL」をお送りします。</p>
+          <div class="hint-box">
+            💡 専用URLは、あなただけのプライベートな運営ページにアクセスする鍵です。<br>
+            他の利用者からはあなたの大会データは一切見えません。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>URLをブックマーク</h3>
+          <p>届いたURLをブラウザのブックマークに登録してください。以降はそのブックマークから自分専用ページにアクセスできます。</p>
+          <div class="hint-box">
+            ⚠️ 重要：URLを紛失した場合は再発行が必要です。複数の場所（メール・スマホ・PC）にバックアップを取ってください。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>利用開始！</h3>
+          <p>「新規大会作成」から、種類（個人戦／団体戦・紅白戦／団体戦・リレー）を選んで大会を作成しましょう。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 使い方 -->
+    <div class="card" id="how-to">
+      <h2>📖 基本的な使い方（5ステップ）</h2>
+
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <h3>大会を作成する</h3>
+          <p>トップページの「新規大会作成」から大会の種類を選択。大会名・日付・剣種（フルーレ／エペ／サーブル）を入力します。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <h3>選手を登録する</h3>
+          <p>「参加者」タブから選手名を入力。団体戦の場合は「所属チーム名」も合わせて入力すると、自動でチーム編成されます。</p>
+          <div class="hint-box">
+            ✅ シード番号を入れると、プール戦・トーナメントが公式ルールに沿って自動配置されます
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <h3>プール戦を開始</h3>
+          <p>「プール戦」タブで「プール生成」ボタン。プール分け・対戦順は公式準拠で自動生成。各試合の結果を入力していきます。</p>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <h3>トーナメントへ進む</h3>
+          <p>プール戦が終了したら「トーナメント」タブで「進出人数」を入力 → 自動でブラケット生成。試合結果を入力すると、勝者が次のラウンドに自動的に進みます。</p>
+          <div class="hint-box">
+            💡 1位は最上段、2位は最下段に配置（FIE標準）。bye（不戦勝）も自動で上に進めます。
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <h3>観戦画面を共有</h3>
+          <p>「基本情報」タブの観戦ページQRコードを印刷して会場に掲示。観客は自分のスマホからリアルタイムで進行状況を確認できます。</p>
+          <div class="hint-box">
+            📱 観戦画面では：プール対戦表（マトリクス）／現在のピスト試合／トーナメント表／最終結果 を順に表示
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card">
+      <h2>❓ よくある質問</h2>
+
+      <details class="faq-item">
+        <summary>専用URLは他の人に見られませんか？</summary>
+        <div class="answer">
+          専用URLは128ビットの乱数（推測不可能）で生成されており、URLを知っている方のみアクセスできます。
+          他の利用者のURLとは完全に別のデータ保存先になっているため、相互に見えることはありません。
+          ただし、URLが第三者に漏れると同じデータにアクセスされる可能性があるため、メール転送やSNS投稿には十分ご注意ください。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>選手や観客にも同じURLを渡していいですか？</summary>
+        <div class="answer">
+          はい、観戦用URL（「viewer.html」が含まれるURL）を共有しても問題ありません。
+          観戦ページからは試合データの編集はできませんので、安心して観客や選手に配布できます。
+          QRコード生成機能を使えば、会場での共有も簡単です。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>インターネットがない会場でも使えますか？</summary>
+        <div class="answer">
+          基本機能はオフラインでも動作します（運営PCに保存）。
+          ただし、観客が別のスマホからリアルタイムで観戦するには、運営PCもネットに繋がっている必要があります。
+          会場のWi-Fiが不安定な場合は、スマホのテザリングをご検討ください。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>過去の大会データはいつまで保存されますか？</summary>
+        <div class="answer">
+          現状は保存期限を設けていません。お使いの運営PCのブラウザ内（localStorage）とクラウド（Firebase）の両方に保存されます。
+          ただし、データの長期保存を保証するものではありません。重要な記録は定期的に「バックアップ書き出し」機能でJSON形式に保存することをお勧めします。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>料金は本当に無料ですか？将来有料になりますか？</summary>
+        <div class="answer">
+          フェンシング速報の無料会員でいる限り、FMSの基本機能は無料です。
+          将来的に有料プラン（大規模大会向けの追加機能など）を提供する可能性はありますが、現在ご提供している機能を有料化する予定はありません。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>複数の大会を同時に運営できますか？</summary>
+        <div class="answer">
+          はい、専用URL内では何個でも大会を作成・管理できます。
+          トップページの「大会一覧」に過去・現在の大会が一覧表示されます。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>団体戦のリザーブ選手の交代はいつできますか？</summary>
+        <div class="answer">
+          試合途中の任意のタイミングで、運営画面から「リザーブ投入」ボタンで交代可能です。
+          ただしFIEルールに基づき、1チームあたり1試合中1回までです。
+          交代された選手は以降の試合に出場できません。
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>商用利用や改変・再配布はできますか？</summary>
+        <div class="answer">
+          個人・教育目的での利用は自由ですが、商用利用には事前許諾が必要です。
+          無断使用・改変・再配布は禁止されています。詳しくは利用規約をご確認ください。
+        </div>
+      </details>
+    </div>
+
+    <!-- 推奨環境 -->
+    <div class="card">
+      <h2>💻 推奨環境</h2>
+      <table>
+        <thead>
+          <tr><th>項目</th><th>推奨環境</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>運営用デバイス</td><td>PC（Windows/Mac）または タブレット</td></tr>
+          <tr><td>観戦用デバイス</td><td>スマートフォン（iOS/Android）</td></tr>
+          <tr><td>ブラウザ</td><td>Chrome / Safari / Edge（最新版）</td></tr>
+          <tr><td>インターネット</td><td>Wi-Fi または モバイル回線</td></tr>
+          <tr><td>その他</td><td>QRコード読み取り用カメラ（観客用）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- お問い合わせ -->
+    <div class="card">
+      <h2>📧 お問い合わせ</h2>
+      <p>システムの不具合・改善要望・料金プラン等のご質問は、フェンシング速報の問い合わせフォームよりご連絡ください。</p>
+      <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+        <a href="https://fencing-speedo.example.com/contact" target="_blank">
+          <button>📧 お問い合わせフォーム</button>
+        </a>
+        <a href="https://fencing-speedo.example.com/" target="_blank">
+          <button class="secondary">🏠 フェンシング速報トップ</button>
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>© 2026 尾上正幸 / フェンシングマネージャーシステム（FMS）</p>
+    <p class="hint">個人・教育目的での利用は自由です。商用利用には事前許諾が必要です。無断使用・改変・再配布を禁止します。</p>
+  </footer>
+</body>
+</html>
