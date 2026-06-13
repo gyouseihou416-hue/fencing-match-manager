@@ -45,9 +45,27 @@
         state = emptyTournament();
         tournamentId = state.id;
       }
+      // 既存トーナメントのbyeカスケード自動修復（旧バージョン互換）
+      if (state.tournament && typeof repairBracketCascade === 'function') {
+        try {
+          const fixed = repairBracketCascade(state.tournament);
+          if (fixed) {
+            await window.FMMStore.saveTournament(state);
+          }
+        } catch (err) {
+          console.warn('カスケード修復の保存に失敗（表示は問題なし）:', err);
+        }
+      }
     } else {
       state = emptyTournament();
       tournamentId = state.id;
+      // URLに type が指定されていればプリセット
+      const presetType = params.get('type');
+      if (presetType && ['individual', 'team_kohaku', 'team_relay'].includes(presetType)) {
+        state.type = presetType;
+        // 自動的に保存して以降は普通に編集可能に
+        await window.FMMStore.saveTournament(state);
+      }
       // URLにIDを反映（ページ再読込しても同じ大会に戻れる）
       history.replaceState(null, '', `?id=${encodeURIComponent(tournamentId)}`);
     }
@@ -410,19 +428,38 @@
     container.innerHTML = sorted.map((t) => {
       const memberCount = (t.memberFencerIds || []).filter(x => x).length;
       const memberStatus = memberCount >= 3 ? '✅ 3名揃い' : (memberCount === 2 ? '⚠ 2名のみ（紅白戦は一部不戦勝、リレー不可）' : '❌ 人数不足');
+      const isRelay = state.type === 'team_relay';
+      const orderHint = isRelay
+        ? '<p class="hint" style="margin:4px 0 6px;color:#d97706">⏱ リレーは走順1→2→3の順番で公式対戦表に従います。走順を変えるには右の番号を1/2/3で入れ替えてください。</p>'
+        : '<p class="hint" style="margin:4px 0 6px">公式対戦順（3vs6/1vs5/2vs4…）に従います。順番を変えたい場合は右の走順番号を入れ替えてください。</p>';
+      const memberRow = (idx) => `
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:nowrap">
+          <span style="display:inline-flex;align-items:center;justify-content:center;min-width:64px;padding:5px 10px;background:linear-gradient(180deg,rgba(212,164,55,0.18),rgba(212,164,55,0.08));color:#EBC55B;border:1px solid rgba(212,164,55,0.35);border-radius:4px;font-size:0.8rem;font-weight:700;text-align:center;letter-spacing:0.04em;flex-shrink:0">走順${idx + 1}</span>
+          <input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="${idx}" value="${escapeHtml(t.members[idx] || '')}" placeholder="選手${idx + 1}の名前" style="flex:1;min-width:0;padding:6px 8px;border:1px solid #d1d5db;border-radius:4px">
+          <select class="team-member-order" data-team-id="${t.id}" data-idx="${idx}" title="この選手の走順を変更（入れ替え）" style="width:60px;padding:6px 4px;border:1px solid #d1d5db;border-radius:4px;flex-shrink:0">
+            <option value="1" ${idx === 0 ? 'selected' : ''}>1</option>
+            <option value="2" ${idx === 1 ? 'selected' : ''}>2</option>
+            <option value="3" ${idx === 2 ? 'selected' : ''}>3</option>
+          </select>
+        </div>
+      `;
       return `
       <div class="team-card" data-team-id="${t.id}">
-        <h3>
-          <input type="text" class="team-name-input" data-team-id="${t.id}" value="${escapeHtml(t.name)}" style="font-size:1rem;font-weight:bold;width:200px">
-          <input type="number" class="team-seed-input" data-team-id="${t.id}" value="${t.seed || ''}" placeholder="シード" style="width:80px">
+        <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <input type="text" class="team-name-input" data-team-id="${t.id}" value="${escapeHtml(t.name)}" style="font-size:1rem;font-weight:bold;width:200px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px">
+          <input type="number" class="team-seed-input" data-team-id="${t.id}" value="${t.seed || ''}" placeholder="シード" style="width:80px;padding:4px 8px;border:1px solid #d1d5db;border-radius:4px">
           <span class="tag" style="background:${memberCount >= 3 ? 'var(--color-success)' : 'var(--color-warning)'}">${memberStatus}</span>
           <button class="small secondary" data-team-del="${t.id}">削除</button>
         </h3>
-        <div class="team-members">
-          <label>選手1<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="0" value="${escapeHtml(t.members[0] || '')}" style="width:100%"></label>
-          <label>選手2<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="1" value="${escapeHtml(t.members[1] || '')}" style="width:100%"></label>
-          <label>選手3<br><input type="text" class="team-member-input" data-team-id="${t.id}" data-idx="2" value="${escapeHtml(t.members[2] || '')}" style="width:100%"></label>
-          <label>リザーブ（控え）<br><input type="text" class="team-reserve-input" data-team-id="${t.id}" value="${escapeHtml(t.reserve || '')}" style="width:100%"></label>
+        ${orderHint}
+        <div style="display:block">
+          ${memberRow(0)}
+          ${memberRow(1)}
+          ${memberRow(2)}
+          <label style="display:block;margin-top:10px;font-size:0.85rem;color:#6b7280">
+            リザーブ（控え）
+            <input type="text" class="team-reserve-input" data-team-id="${t.id}" value="${escapeHtml(t.reserve || '')}" style="display:block;width:100%;box-sizing:border-box;margin-top:4px;padding:6px 8px;border:1px solid #d1d5db;border-radius:4px">
+          </label>
         </div>
         ${t.substitutionUsed ? `<p class="hint" style="color:var(--color-warning)">⚠ リザーブ使用済み（${escapeHtml(t.members[t.substitutedOut] || '')}が出場中、${escapeHtml(t.reserve || '')}は控え）</p>` : ''}
       </div>
@@ -444,6 +481,39 @@
       inp.addEventListener('change', async () => {
         const t = state.teams.find(x => x.id === inp.dataset.teamId);
         if (t) { t.members[Number(inp.dataset.idx)] = inp.value.trim(); await save(); }
+      });
+    });
+    // 走順入れ替え：slot Xに走順Yを入れたら、現在走順Yの選手と入れ替え
+    container.querySelectorAll('.team-member-order').forEach(sel => {
+      sel.addEventListener('change', async (e) => {
+        const t = state.teams.find(x => x.id === sel.dataset.teamId);
+        if (!t) return;
+        const curIdx = Number(sel.dataset.idx);
+        const newOrder = Number(e.target.value);
+        const targetIdx = newOrder - 1;
+        if (curIdx === targetIdx) return;
+        // 配列を必ず3スロットの文字列配列に正規化（undefined→''）
+        const normalize = (arr) => {
+          const out = ['', '', ''];
+          for (let i = 0; i < 3; i++) out[i] = arr && arr[i] != null ? String(arr[i]) : '';
+          return out;
+        };
+        t.members = normalize(t.members);
+        t.memberFencerIds = normalize(t.memberFencerIds);
+        // 入れ替え
+        const tmpName = t.members[targetIdx];
+        const tmpId = t.memberFencerIds[targetIdx];
+        t.members[targetIdx] = t.members[curIdx];
+        t.memberFencerIds[targetIdx] = t.memberFencerIds[curIdx];
+        t.members[curIdx] = tmpName;
+        t.memberFencerIds[curIdx] = tmpId;
+        try {
+          await save();
+        } catch (err) {
+          console.error('走順入れ替えの保存に失敗:', err);
+          alert('走順の入れ替えに失敗しました。ネットワークを確認してください。');
+        }
+        renderTeams();
       });
     });
     container.querySelectorAll('.team-reserve-input').forEach(inp => {
@@ -760,11 +830,11 @@
                   ${isRelay ? `<td class="cumulative">${b.completed ? `${b.cumulativeA} - ${b.cumulativeB}` : '-'}</td>` : `<td>${b.winner === 'A' ? escapeHtml(teamA.name) : (b.winner === 'B' ? escapeHtml(teamB.name) : '-')}${forfeit ? '（不戦勝）' : ''}</td>`}
                   <td>
                     ${forfeit ? '<span class="hint">自動確定</span>' : `<button class="small ${b.completed ? 'secondary' : ''}" data-tb-confirm="${tm.id}" data-tb-bout="${bi}">${b.completed ? '修正' : '確定'}</button>`}
-                    ${isTie && b.completed ? `
-                      <div style="margin-top:4px;font-size:0.75rem">
-                        <span style="color:#d97706">⏱延長：</span>
-                        <button class="small ${tieA ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="A">${escapeHtml(teamA.name)}</button>
-                        <button class="small ${tieB ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="B">${escapeHtml(teamB.name)}</button>
+                    ${isTie && !forfeit ? `
+                      <div style="margin-top:4px;font-size:0.75rem;padding:6px;background:rgba(212,164,55,0.10);border:1px solid rgba(212,164,55,0.3);border-radius:4px">
+                        <div style="color:#EBC55B;font-weight:bold;margin-bottom:4px">⏱ 同点です。延長戦勝者を選んでください：</div>
+                        <button class="small ${tieA ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="A">${escapeHtml(teamA.name)}勝ち</button>
+                        <button class="small ${tieB ? '' : 'secondary'}" data-tb-tie="${tm.id}" data-tb-bout="${bi}" data-tb-side="B">${escapeHtml(teamB.name)}勝ち</button>
                       </div>
                     ` : ''}
                   </td>
@@ -804,6 +874,10 @@
           b.tieBreakWinner = null;
           recomputeTeamMatch(tm);
         } else {
+          // 同点なら案内表示
+          if (b.scoreA === b.scoreB && b.scoreA > 0) {
+            alert('同点 (' + b.scoreA + '-' + b.scoreB + ') です。下の延長戦ボタンで勝者を選んでください。');
+          }
           recordTeamBout(tm, bi, b.scoreA, b.scoreB, null);
         }
         await save();
@@ -971,13 +1045,13 @@
     const isTeam = isTeamMode();
     container.className = '';
 
-    // SVG ブラケット
-    const svgPart = `
+    // SVG ブラケット（renderBracketSvg未定義時はスキップ）
+    const svgPart = (typeof renderBracketSvg === 'function') ? `
       <div class="card">
         <h3 style="margin-top:0;font-size:1rem;color:#6b7280">📊 ブラケット俯瞰</h3>
         <div class="svg-bracket">${renderBracketSvg(state.tournament, escapeHtml)}</div>
       </div>
-    `;
+    ` : '<div class="card empty-state hint">⚠ tournament.js が古いバージョンです。最新版をGitHubにアップロードしてください</div>';
 
     // 各試合の編集UI
     const t = state.tournament;
